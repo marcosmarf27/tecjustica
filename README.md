@@ -69,6 +69,16 @@ Assessoria completa para processos criminais:
 - Pesquisa de jurisprudencia penal
 - Atencao especial a garantias fundamentais
 
+### Relatorio de Audiencias (`relatorio-audiencias`)
+
+Relatorio estruturado de todas as audiencias de um processo (criminal ou civel):
+
+- Deteccao dinamica de qualquer tipo de audiencia nos autos
+- Busca combinada: movimentacoes + documentos + analise semantica
+- Tabela estruturada: Data | Tipo | Quem foi ouvido | Resumo | Providencias
+- Alertas: audiencias sem ata, redesignadas, ausencias relevantes
+- Exportacao DOCX opcional
+
 ## Dependencia opcional: Skill DOCX
 
 Para gerar documentos `.docx` formatados (decisoes, despachos, sentencas), instale a skill DOCX oficial da Anthropic separadamente:
@@ -94,6 +104,10 @@ Apos instalar o plugin, as skills sao ativadas automaticamente quando voce faz p
 "Busque sumulas do STJ sobre responsabilidade civil objetiva"
 
 "Faca a dosimetria da pena para o processo Y"
+
+"Faca um relatorio de audiencias do processo Z"
+
+"Quem foi ouvido nas audiencias do processo X?"
 ```
 
 ## Gerenciamento do plugin
