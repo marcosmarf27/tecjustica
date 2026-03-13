@@ -1,0 +1,17 @@
+{
+  "name": "tecjustica-plugins",
+  "owner": {
+    "name": "TecJustica"
+  },
+  "metadata": {
+    "description": "Plugins de assessoria judicial para Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "tecjustica",
+      "source": "./",
+      "description": "Assessoria judicial inteligente para processos civeis e penais brasileiros.",
+      "version": "1.0.0"
+    }
+  ]
+}
