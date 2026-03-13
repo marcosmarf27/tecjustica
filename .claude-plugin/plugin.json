@@ -1,0 +1,12 @@
+{
+  "name": "tecjustica",
+  "description": "Assessoria judicial inteligente para processos civeis e penais brasileiros. Analise processual, elaboracao de decisoes, jurisprudencia e calculos de prazos usando o MCP TecJustica.",
+  "version": "1.0.0",
+  "author": {
+    "name": "TecJustica"
+  },
+  "license": "Apache-2.0",
+  "keywords": ["judicial", "processo", "civel", "penal", "CPC", "CPP", "assessor", "magistrado", "brasil"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
+}

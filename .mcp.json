@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "tecjustica": {
+      "type": "streamable-http",
+      "url": "https://mcp.tecjustica.com/mcp"
+    }
+  }
+}
