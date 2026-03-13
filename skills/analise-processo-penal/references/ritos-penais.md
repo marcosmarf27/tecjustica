@@ -386,7 +386,7 @@ III - Crime de violencia domestica (garantir medidas protetivas)
 | Ofendido (vitima) | Art. 201 |
 | Testemunhas | Arts. 202-225 |
 | Reconhecimento de pessoas e coisas | Arts. 226-228 |
-| Acareacao | Arts. 229-230 |
+| Acareação | Arts. 229-230 |
 | Documentos | Arts. 231-238 |
 | Indicios | Art. 239 |
 | Busca e apreensao | Arts. 240-250 |

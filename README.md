@@ -9,28 +9,47 @@ Assessoria judicial inteligente para processos civeis e penais brasileiros. Anal
 
 ## Instalacao
 
-### Via Claude Code Plugin Marketplace
+### Passo 1 — Adicionar o repositorio como marketplace
 
-```bash
-claude plugin install tecjustica
+No Claude Code, execute:
+
+```
+/plugin marketplace add marcosmarf27/tecjustica
+```
+
+### Passo 2 — Instalar o plugin
+
+```
+/plugin install tecjustica@marcosmarf27-tecjustica
+```
+
+Para instalar apenas no projeto atual (ao inves de globalmente):
+
+```
+/plugin install tecjustica@marcosmarf27-tecjustica --scope project
 ```
 
 ### Instalacao local (desenvolvimento)
 
+Clone o repositorio e inicie o Claude Code apontando para ele:
+
 ```bash
-git clone https://github.com/tecjustica/skills-tecjustica.git
-claude --plugin-dir ./skills-tecjustica
+git clone https://github.com/marcosmarf27/tecjustica.git
+claude --plugin-dir ./tecjustica
 ```
+
+Durante o desenvolvimento, use `/reload-plugins` para aplicar alteracoes sem reiniciar.
 
 ## Autenticacao
 
-O plugin usa OAuth para autenticacao com o MCP TecJustica. Na primeira utilizacao, o navegador abrira automaticamente para login. Apos autenticar, o token e armazenado localmente.
+O plugin usa OAuth para autenticacao com o MCP TecJustica. Na primeira utilizacao de qualquer ferramenta do MCP, o navegador abrira automaticamente para login. Apos autenticar, o token e armazenado localmente.
 
 ## Skills incluidas
 
 ### Analise de Processo Civil (`analise-processo-civil`)
 
 Assessoria completa para processos civeis:
+
 - Identificacao automatica do rito (procedimento comum, especial, execucao, cumprimento de sentenca)
 - Analise de fase processual e proximos passos
 - Elaboracao de despachos, decisoes interlocutorias e sentencas civeis
@@ -41,6 +60,7 @@ Assessoria completa para processos civeis:
 ### Analise de Processo Penal (`analise-processo-penal`)
 
 Assessoria completa para processos criminais:
+
 - Identificacao automatica do rito (ordinario, sumario, sumarissimo, juri, especiais)
 - Controle de prazos com reu preso vs. solto
 - Dosimetria da pena (sistema trifasico)
@@ -60,21 +80,36 @@ Para gerar documentos `.docx` formatados (decisoes, despachos, sentencas), insta
 
 ## Exemplos de uso
 
+Apos instalar o plugin, as skills sao ativadas automaticamente quando voce faz pedidos relacionados. Basta conversar normalmente:
+
 ```
-# Listar processos disponiveis
 "Liste meus processos"
 
-# Analisar um processo civel
 "Analise o processo 0001234-56.2024.8.26.0100"
 
-# Elaborar uma decisao
 "Elabore um despacho de saneamento para o processo X"
 
-# Calcular prazo
 "Qual o prazo para contestacao se a citacao foi em 10/03/2025?"
 
-# Buscar jurisprudencia
 "Busque sumulas do STJ sobre responsabilidade civil objetiva"
+
+"Faca a dosimetria da pena para o processo Y"
+```
+
+## Gerenciamento do plugin
+
+```
+# Atualizar para a versao mais recente
+/plugin marketplace update marcosmarf27-tecjustica
+
+# Desabilitar temporariamente
+/plugin disable tecjustica@marcosmarf27-tecjustica
+
+# Reabilitar
+/plugin enable tecjustica@marcosmarf27-tecjustica
+
+# Desinstalar
+/plugin uninstall tecjustica@marcosmarf27-tecjustica
 ```
 
 ## Licenca
