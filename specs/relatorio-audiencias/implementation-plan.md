@@ -37,6 +37,6 @@ Para relatorio completo de audiencias realizadas no processo, invoque a skill `r
 
 ## Fase 3: Validacao final
 
-- [ ] Verificar que o SKILL.md segue o padrao das skills existentes
-- [ ] Verificar que as referencias cruzadas estao corretas
-- [ ] Commit final com todas as alteracoes
+- [x] Verificar que o SKILL.md segue o padrao das skills existentes
+- [x] Verificar que as referencias cruzadas estao corretas
+- [x] Commit final com todas as alteracoes
