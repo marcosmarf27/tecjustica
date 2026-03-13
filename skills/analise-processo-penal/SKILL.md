@@ -115,6 +115,9 @@ Complementar com pesquisa web quando necessario:
 ### Passo 7 — Gerar decisao/despacho/sentenca
 Consulte `references/modelos-decisoes-penais.md` para a estrutura adequada. Use a skill `docx` para gerar o documento formatado.
 
+### Skill Relatorio de Audiencias (instalada por default)
+Para relatorio completo de audiencias realizadas no processo, invoque a skill `relatorio-audiencias`. Ela retorna tabela estruturada com todas as audiencias, ouvidos, resumos e providencias.
+
 ## Regras de Ouro
 
 1. **SEMPRE comece com `visao_geral_processo`** — nunca analise sem contexto
