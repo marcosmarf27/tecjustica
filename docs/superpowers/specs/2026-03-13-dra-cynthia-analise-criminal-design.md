@@ -26,7 +26,7 @@ Skill separada (`dra-cynthia-analise-criminal`) para analisar processo criminal 
 ```yaml
 ---
 name: dra-cynthia-analise-criminal
-description: Analisar processo criminal e gerar relatorio estruturado para magistrado com anotacoes por folhas. Use quando o usuario pedir analise criminal detalhada, relatorio para audiencia, preparacao para instrucao, analise por folhas, resumo de processo criminal, cronologia processual, ou mencionar termos como "relatorio para audiencia", "analise por folhas", "preparacao para instrucao", "pontos para audiencia", "fls.", "anotacoes do processo", "relatorio estruturado criminal", "Dra. Cynthia", "analise criminal magistrado", "relatorio criminal", "preparar audiencia de instrucao".
+description: Gerar relatorio estruturado de processo criminal para magistrado com anotacoes por folhas, facilitando preparacao para audiencia de instrucao. Use quando o usuario pedir relatorio para audiencia de instrucao, preparacao para instrucao, analise por folhas, anotacoes do processo criminal, pontos para audiencia, ou mencionar termos como "relatorio para audiencia", "analise por folhas", "preparacao para instrucao", "pontos para audiencia", "fls.", "anotacoes do processo", "relatorio estruturado para magistrado", "Dra. Cynthia", "preparar audiencia de instrucao", "relatorio com folhas".
 ---
 ```
 
@@ -45,8 +45,10 @@ O SKILL.md deve incluir secao completa de ferramentas:
 - **`read_documento(document_id, offset, max_chars)`** — leitura cirurgica de trechos
 - **`analisar(cnj, pergunta, perspectiva)`** — analise semantica com LLM
 - **`stats_documentos(cnj)`** — volume e distribuicao dos documentos
-- **`buscar_precedentes(busca, orgaos, tipos)`** — sumulas, temas repetitivos, IRDR
+- **`calculadora(modo="prazo_criminal", data_intimacao, dias)`** — calculo de prazos em dias corridos (CPP)
 - **`data_hora_atual()`** — data/hora atual
+
+Nota: `buscar_precedentes()` nao e incluida pois o escopo desta skill e organizar dados processuais, nao fundamentar juridicamente. Para pesquisa de jurisprudencia, use a skill `analise-processo-penal`.
 
 ### Skill DOCX (instalacao separada)
 
@@ -69,7 +71,8 @@ Fluxo linear seguindo principio de economia (barato → caro):
 - `stats_documentos(cnj)` — volume e tipos de documentos
 
 ### Etapa 2 — Cronologia processual
-- `grep_movimentacoes(".*", cnj)` — todas as movimentacoes para montar cronologia
+- `grep_movimentacoes("denuncia|citac|audiencia|decisao|despacho|sentenc|receb|intimac|priso|soltur|alvar", cnj)` — movimentacoes relevantes para cronologia
+- Em processos volumosos, paginar com offset quando `has_more: true`
 - Identificar marcos: data do fato, registro, denuncia, citacao, audiencias, decisoes
 
 ### Etapa 3 — Mapear documentos por tipo
@@ -118,9 +121,14 @@ Fluxo linear seguindo principio de economia (barato → caro):
 - Checklist com `[ ]` para pendencias
 - Sem secao de "Sugestoes para o Magistrado"
 
+### Processo em fase inadequada
+- Se o processo esta em fase de inquerito ou nao tem denuncia recebida, informar que audiencia de instrucao nao e esperada nesta fase
+- Se o volume de documentos e insuficiente para analise completa, avisar que o relatorio pode estar incompleto
+
 ### DOCX (quando solicitado)
-- Cabecalho com dados do processo
-- Relatorio completo formatado
+- Cabecalho: numero CNJ, vara, magistrado, acusado(s), tipificacao penal
+- Secoes na ordem do relatorio com headers formatados
+- Tabelas para depoimentos e provas
 - Gerado via skill docx se instalada; se nao, oferecer Markdown
 
 ## Regras de Ouro
@@ -135,7 +143,8 @@ Fluxo linear seguindo principio de economia (barato → caro):
 8. **Destaque contradicoes** — entre depoimentos, em negrito
 9. **Sinalize lacunas** — provas faltantes, diligencias pendentes
 10. **Sem sugestoes** — organizar dados, nao sugerir perguntas ou conclusoes
-11. **Use `relatorio-audiencias`** — para detalhamento completo de audiencias quando necessario
+11. **Use `relatorio-audiencias`** — quando houver 3+ audiencias realizadas, delegue a tabela consolidada para a skill `relatorio-audiencias`; para menos, trate diretamente
+12. **Verifique a fase processual** — se o processo nao tem denuncia recebida, alerte que audiencia de instrucao nao e esperada
 
 ## Integracao
 
