@@ -118,6 +118,9 @@ Consulte `references/modelos-decisoes-penais.md` para a estrutura adequada. Use 
 ### Skill Relatorio de Audiencias (instalada por default)
 Para relatorio completo de audiencias realizadas no processo, invoque a skill `relatorio-audiencias`. Ela retorna tabela estruturada com todas as audiencias, ouvidos, resumos e providencias.
 
+### Skill Dra. Cynthia — Relatorio Criminal para Magistrado (instalada por default)
+Para relatorio estruturado de processo criminal com anotacoes por folhas, preparacao para audiencia de instrucao, e organizacao de provas e depoimentos, invoque a skill `dra-cynthia-analise-criminal`.
+
 ## Regras de Ouro
 
 1. **SEMPRE comece com `visao_geral_processo`** — nunca analise sem contexto

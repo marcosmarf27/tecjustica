@@ -79,6 +79,17 @@ Relatorio estruturado de todas as audiencias de um processo (criminal ou civel):
 - Alertas: audiencias sem ata, redesignadas, ausencias relevantes
 - Exportacao DOCX opcional
 
+### Dra. Cynthia — Analise Criminal para Magistrado (`dra-cynthia-analise-criminal`)
+
+Relatorio estruturado de processo criminal para preparacao de audiencia de instrucao:
+
+- Anotacoes organizadas por folhas (fls.) ou ID de documento
+- 4 secoes fixas: resumo executivo, cronologia, questoes juridicas, pontos para audiencia
+- 4 secoes condicionais: anotacoes por folhas, provas, depoimentos, manifestacoes
+- Contradicoes entre depoimentos destacadas em negrito
+- Lacunas probatorias e pendencias sinalizadas com checklist
+- Exportacao DOCX opcional
+
 ## Dependencia opcional: Skill DOCX
 
 Para gerar documentos `.docx` formatados (decisoes, despachos, sentencas), instale a skill DOCX oficial da Anthropic separadamente:
@@ -108,6 +119,10 @@ Apos instalar o plugin, as skills sao ativadas automaticamente quando voce faz p
 "Faca um relatorio de audiencias do processo Z"
 
 "Quem foi ouvido nas audiencias do processo X?"
+
+"Dra. Cynthia, prepare o relatorio para audiencia de instrucao do processo Z"
+
+"Faca uma analise por folhas do processo criminal X"
 ```
 
 ## Gerenciamento do plugin
