@@ -14,6 +14,7 @@ O Claude Code carrega o **plugin TecJustica**, que expoe 6 skills e registra o s
 
 ## Sumario
 
+- [Portais TecJustica](#portais-tecjustica)
 - [Plataforma suportada](#plataforma-suportada)
 - [Pre-requisitos](#pre-requisitos)
 - [Passo 1 — Instalar dependencias do sistema](#passo-1--instalar-dependencias-do-sistema)
@@ -27,6 +28,35 @@ O Claude Code carrega o **plugin TecJustica**, que expoe 6 skills e registra o s
 - [Gerenciamento do plugin](#gerenciamento-do-plugin)
 - [Troubleshooting](#troubleshooting)
 - [Licenca](#licenca)
+
+---
+
+## Portais TecJustica
+
+Antes de instalar o plugin voce precisa criar conta em **pelo menos um** dos dois portais da TecJustica. Cada servico tem sua propria chave de API.
+
+### 🏛️ MCP TecJustica Lite (obrigatorio)
+
+> **https://tecjusticamcp-lite-production.up.railway.app/**
+
+Este e o **portal principal** do plugin. E onde voce cria sua conta, obtem a chave `mcp_...` e acessa o MCP TecJustica Lite, que alimenta todas as skills de analise processual (`tecjustica-mcp-lite`, `analise-processo-civil`, `analise-processo-penal`). Sem essa chave, o plugin nao consegue ler processos, movimentacoes, documentos nem buscar precedentes no DataLake PDPJ/CNJ.
+
+- **Cadastro:** https://tecjusticamcp-lite-production.up.railway.app/registro
+- **Login e geracao de chave:** https://tecjusticamcp-lite-production.up.railway.app/
+- **Prefixo da chave:** `mcp_...`
+- **Variavel de ambiente:** `TECJUSTICA_API_KEY`
+
+### 📄 TecJustica Dashboard (opcional — OCR de PDFs)
+
+> **https://tecjustica-dashboard-production.up.railway.app/**
+
+Portal secundario, dedicado ao servico **TecJustica Parse** — a API de OCR com PaddleOCR GPU usada pela skill `tecjustica-parse`. Crie conta aqui **apenas se voce for extrair texto de PDFs** (certidoes, matriculas, autos escaneados, etc.). Quem so for usar analise processual via MCP pode pular este passo.
+
+- **Cadastro e painel:** https://tecjustica-dashboard-production.up.railway.app/
+- **Prefixo da chave:** `tjp_...`
+- **Variavel de ambiente:** `TECJUSTICA_PARSE_API_KEY`
+
+> ⚠️ **As duas chaves nao sao intercambiaveis.** A chave `mcp_...` nao funciona no Parse, e a chave `tjp_...` nao funciona no MCP. Cada servico tem seu proprio cadastro.
 
 ---
 
@@ -141,28 +171,33 @@ A saida do `browser-use doctor` deve indicar que Python, dependencias e o binari
 
 ## Passo 2 — Obter suas chaves de API
 
-O plugin usa **duas chaves distintas**. Cada servico TecJustica tem a sua — nao sao intercambiaveis.
+O plugin usa **duas chaves distintas**, uma por portal. Veja a secao [Portais TecJustica](#portais-tecjustica) acima para contexto. Tabela-resumo:
 
-| Chave | Prefixo | Usada por | Obrigatoria? |
-|-------|---------|-----------|:---:|
-| MCP TecJustica | `mcp_...` | `tecjustica-mcp-lite`, `analise-processo-civil`, `analise-processo-penal` | **Sim** |
-| TecJustica Parse | `tjp_...` | `tecjustica-parse` | So se usar OCR |
+| Chave | Prefixo | Portal | Usada por | Obrigatoria? |
+|-------|---------|--------|-----------|:---:|
+| MCP TecJustica Lite | `mcp_...` | [tecjusticamcp-lite-production.up.railway.app](https://tecjusticamcp-lite-production.up.railway.app/) | `tecjustica-mcp-lite`, `analise-processo-civil`, `analise-processo-penal` | **Sim** |
+| TecJustica Parse | `tjp_...` | [tecjustica-dashboard-production.up.railway.app](https://tecjustica-dashboard-production.up.railway.app/) | `tecjustica-parse` | So se usar OCR |
 
-### 2.1 Chave do MCP TecJustica Lite
+### 2.1 Chave do MCP TecJustica Lite (obrigatoria)
 
-1. Acesse https://tecjusticamcp-lite-production.up.railway.app/registro
+Este e o **portal principal do plugin**. Sem esta chave, nenhuma das skills de analise processual funciona.
+
+1. Acesse **https://tecjusticamcp-lite-production.up.railway.app/registro**
 2. Crie uma conta (email + senha)
-3. No painel, gere uma API key — o valor comeca com `mcp_` seguido de caracteres alfanumericos
-4. **Copie e guarde em local seguro** — a chave nao e exibida de novo
+3. Faca login em **https://tecjusticamcp-lite-production.up.railway.app/** e gere uma API key no painel
+4. O valor retornado comeca com `mcp_` seguido de caracteres alfanumericos (ex: `mcp_4ef2e6bc187049949c41955150b76bd5`)
+5. **Copie e guarde em local seguro** — dependendo do painel, a chave pode nao ser exibida de novo
 
-### 2.2 Chave da TecJustica Parse (opcional)
+### 2.2 Chave da TecJustica Parse (opcional — so se for usar OCR)
 
-Necessaria apenas se voce quiser usar a skill `tecjustica-parse` para extrair texto de PDFs.
+Necessaria apenas se voce quiser usar a skill `tecjustica-parse` para extrair texto de PDFs via OCR (PaddleOCR GPU + IA Vision).
 
-1. Acesse https://tecjustica-dashboard-production.up.railway.app
+1. Acesse **https://tecjustica-dashboard-production.up.railway.app/**
 2. Crie uma conta
-3. No painel, gere uma API key — comeca com `tjp_`
+3. No painel, gere uma API key — comeca com `tjp_` (ex: `tjp_5e67cee9099f4b558c1f2e57b5f83aef`)
 4. Copie e guarde
+
+> **Lembrete:** o cadastro do Dashboard (Parse) e **independente** do cadastro do MCP Lite. Voce precisa criar contas separadas em cada portal.
 
 ---
 
