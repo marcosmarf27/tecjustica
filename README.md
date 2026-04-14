@@ -103,6 +103,7 @@ A tabela abaixo resume tudo. Os passos detalhados vem na proxima secao.
 | `browser-use` CLI | `pje-download`, `cjf-jurisprudencia` | Secao 1.4 |
 | LibreOffice headless | `tecjustica-docx` (conversao DOCX -> PDF) | Secao 1.5 |
 | `python-docx` | `tecjustica-docx` (geracao de DOCX) | Secao 1.6 |
+| Fontes editoriais (EB Garamond + IBM Plex) | `tecjustica-docx` (identidade visual executiva) | Secao 1.7 |
 | Chave API MCP (`mcp_...`) | MCP TecJustica | Secao 2.1 |
 | Chave API Parse (`tjp_...`) | `tecjustica-parse` | Secao 2.2 (opcional) |
 | Credenciais PJE TJCE | `pje-download` | Voce ja deve ter como magistrado/servidor/advogado |
@@ -111,9 +112,12 @@ A tabela abaixo resume tudo. Os passos detalhados vem na proxima secao.
 
 ## Instalacao automatica (atalho)
 
-Se voce quer pular os passos manuais, o repositorio traz um script `install.sh` que instala todas as dependencias, pede suas chaves de API interativamente e configura o `~/.bashrc`:
+Se voce quer pular os passos manuais, o repositorio traz um script `install.sh` que instala todas as dependencias, pede suas chaves de API interativamente e configura o `~/.bashrc`.
+
+**IMPORTANTE sobre sudo:** o script precisa instalar varios pacotes do sistema (Node.js, Chrome, LibreOffice, fontes editoriais) e por isso exige acesso sudo. Ele pede sua senha **uma unica vez** no inicio e mantem a sessao autenticada para o resto da instalacao — voce nao vai precisar digitar a senha 5 vezes seguidas.
 
 ```bash
+# Opcao 1: rodar direto do GitHub (recomendado — precisa de tty para sudo)
 curl -fsSL https://raw.githubusercontent.com/marcosmarf27/tecjustica/main/install.sh | bash
 ```
 
@@ -128,13 +132,15 @@ bash install.sh
 O script cobre:
 
 1. Detecta plataforma (Linux nativo, WSL2 ou macOS)
-2. Instala Node.js 18+
-3. Instala Google Chrome
-4. Instala `browser-use` CLI
-5. Instala LibreOffice headless (para `tecjustica-docx` converter DOCX -> PDF)
-6. Instala `python-docx` via pip (para `tecjustica-docx` gerar DOCX)
-7. Verifica se Claude Code esta instalado (avisa se faltar)
-8. Pede as duas chaves de API (MCP Lite e Parse) e escreve no `~/.bashrc`
+2. Pede sua senha sudo **uma unica vez** e mantem a sessao ativa durante toda a instalacao
+3. Instala Node.js 18+
+4. Instala Google Chrome
+5. Instala `browser-use` CLI
+6. Instala LibreOffice headless (para `tecjustica-docx` converter DOCX -> PDF)
+7. Instala `python-docx` via pip (para `tecjustica-docx` gerar DOCX)
+8. Instala fontes editoriais (EB Garamond + IBM Plex Sans/Mono + Inconsolata + Caladea + Carlito) — essenciais para a identidade visual de `tecjustica-docx`
+9. Verifica se Claude Code esta instalado (avisa se faltar)
+10. Pede as duas chaves de API (MCP Lite e Parse) e escreve no `~/.bashrc`
 
 **Flags uteis:**
 
@@ -147,6 +153,7 @@ O script cobre:
 | `--skip-browser-use` | Nao instala browser-use |
 | `--skip-libreoffice` | Nao instala LibreOffice (tecjustica-docx nao conseguira gerar PDF) |
 | `--skip-python-docx` | Nao instala python-docx (tecjustica-docx nao conseguira gerar DOCX) |
+| `--skip-fonts` | Nao instala fontes editoriais (tecjustica-docx usara fallbacks genericos) |
 | `--skip-env` | Nao mexe no `~/.bashrc` |
 
 Depois do script terminar, **abra um novo terminal** para as variaveis serem carregadas e siga direto para o [Passo 4 — Instalar o plugin](#passo-4--instalar-o-plugin-o-mcp-vem-junto).
@@ -245,6 +252,43 @@ python3 -c "import docx; print(docx.__version__)"
 ```
 
 A biblioteca `python-docx` tem cerca de 1 MB e nao puxa dependencias pesadas. Ela e usada pelo `docx_builder.py` da skill `tecjustica-docx` para montar DOCX programaticamente com capa, sumario, tabelas estilizadas, timeline processual, quotes de jurisprudencia, data cards e callouts na paleta visual do TecJustica.
+
+### 1.7 Fontes editoriais (necessarias para o design executivo de `tecjustica-docx`)
+
+A skill `tecjustica-docx` foi calibrada no padrao visual de bancas de investimento e consultorias top-tier (Goldman, JP Morgan, McKinsey, BCG), o que depende de uma combinacao tipografica especifica:
+
+- **EB Garamond** — serifa transicional classica (display + body)
+- **IBM Plex Sans** — sans-serif institucional (labels e eyebrows)
+- **IBM Plex Mono** — monoespaçada (document ID, datas, paginacao)
+- **Inconsolata** — mono editorial (fallback)
+- **Caladea** — metrico-compativel com Cambria
+- **Carlito** — metrico-compativel com Calibri
+
+Sem essas fontes, o LibreOffice substitui automaticamente por fallbacks genericos (Liberation Serif / DejaVu Sans) e o relatorio perde sua identidade visual institucional.
+
+```bash
+sudo apt install -y \
+  fonts-ebgaramond \
+  fonts-ebgaramond-extra \
+  fonts-ibm-plex \
+  fonts-inconsolata \
+  fonts-crosextra-caladea \
+  fonts-crosextra-carlito
+
+# Atualizar o cache de fontes do sistema
+fc-cache -f
+
+# Validar
+fc-list | grep -E "EB Garamond|IBM Plex"
+```
+
+No macOS:
+
+```bash
+brew install --cask font-eb-garamond font-ibm-plex font-inconsolata
+```
+
+Total instalado: ~20 MB.
 
 ---
 
@@ -508,9 +552,13 @@ Automatiza o download de autos (PDFs) de processos do PJE TJCE 1o Grau usando `b
 
 Busca jurisprudencia unificada no Conselho da Justica Federal (STF, STJ, TRF1-5, TNU) via `browser-use` CLI em modo `--headed` (o WAF do CJF bloqueia headless). Suporta operadores logicos (`e`, `ou`, `nao`, `adj`, `prox`, `mesmo`, `com`, `$`) para pesquisa avancada.
 
-### `tecjustica-docx` — Relatorios processuais profissionais em DOCX e PDF
+### `tecjustica-docx` — Relatorios executivos em DOCX e PDF (padrao banca de investimento)
 
-Gera relatorios processuais com identidade visual TecJustica (paleta indigo `#4F46E5` + acento laranja `#FF6719`, tipografia Georgia para headings + Calibri para corpo). Suporta capa, sumario automatico, headings com divisor, data cards (grid de metadados-chave), tabelas estilizadas com cabecalho indigo, timeline processual, quotes de jurisprudencia com borda lateral, callouts (info/warn/ok), blocos de codigo e assinatura formal. Converte automaticamente para PDF via LibreOffice headless. Ideal para consolidar o resultado de `analise-processo-civil`/`-penal` em documento formal para compartilhar com magistrados ou juntar aos autos. Exige `python-docx` e `libreoffice` (ambos instalados pelo `install.sh`).
+Gera relatorios processuais executivos com identidade visual calibrada no padrao de bancas de investimento e consultorias top-tier (Goldman, JP Morgan, McKinsey, BCG): paleta navy `#12223F` + ocre `#A67C2E` + creme `#F6F1E6`, tipografia editorial EB Garamond (display + body) + IBM Plex Sans (labels em caps com tracking amplo) + IBM Plex Mono (document ID, numerais, paginacao).
+
+Suporta capa densa preenchida com eyebrow + numero de documento + titulo display de 42pt + metadata grid institucional + bloco "PREPARADO POR" + data em formato romano, sumario automatico, headings com numeral lateral ("01", "02"...) e hairline dourado, KPI cards, data cards, tabelas editoriais sem bordas verticais, timeline processual em 3 colunas, quotes de jurisprudencia com barra lateral ocre, callouts (info/warn/ok), blocos de codigo e assinatura formal. Converte automaticamente para PDF via LibreOffice headless.
+
+Ideal para consolidar o resultado de `analise-processo-civil`/`-penal` em documento formal para compartilhar com magistrados, bancos, conselhos ou juntar aos autos. Exige `python-docx`, `libreoffice` e as fontes editoriais (EB Garamond + IBM Plex), todas instaladas automaticamente pelo `install.sh`.
 
 ---
 

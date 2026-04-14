@@ -1,40 +1,47 @@
-"""CLI para gerar relatórios TecJustica a partir de JSON.
+"""CLI para gerar relatórios TecJustica Edição Executiva a partir de JSON.
 
 Uso:
-    python3 gerar_relatorio.py entrada.json saida.docx [--pdf]
+    python3 gerar_relatorio.py entrada.json saida.docx [--pdf] [--pdf-path /tmp/out.pdf]
 
-Formato do JSON de entrada:
+Formato completo do JSON:
+
 {
   "meta": {
-    "titulo": "Relatório Processual",
-    "subtitulo": "Análise do processo ...",
-    "autor": "TecJustica",
-    "data": "14/04/2026",
-    "cnj": "0001234-56.2024.8.06.0001",
-    "orgao": "TecJustica · Assessoria Judicial"
+    "titulo": "Relatório de Análise Processual",
+    "subtitulo": "Parecer técnico sobre cumprimento de sentença",
+    "eyebrow": "RELATÓRIO PROCESSUAL",
+    "classificacao": "RESERVADO",
+    "numero_documento": "TJ-CE / 2026 / 024",
+    "autor": "TecJustica · Assessoria Judicial",
+    "orgao": "TecJustica · Assessoria Judicial com IA",
+    "metadata": [
+      ["AUTOS", "0001234-56.2024.8.06.0001"],
+      ["CLASSE", "Cumprimento de sentença"],
+      ["ÓRGÃO JULGADOR", "4ª Vara Cível · Fortaleza/CE"],
+      ["RELATOR(A)", "Juiz(a) de Direito"],
+      ["DATA", "14 de abril de 2026"]
+    ]
   },
   "cover": true,
   "toc": true,
   "sections": [
-    {"type": "heading", "level": 1, "text": "Sumário executivo"},
-    {"type": "lead", "text": "Este relatório analisa..."},
+    {"type": "heading", "level": 1, "text": "Sumário executivo", "numeral": "01"},
+    {"type": "lead", "text": "Parecer técnico assistido..."},
     {"type": "paragraph", "text": "..."},
-    {"type": "bullets", "items": ["Item 1", "Item 2"]},
-    {"type": "data_cards", "items": [["CNJ", "..."], ["Classe", "..."]]},
-    {"type": "table", "headers": ["Coluna"], "rows": [["Valor"]]},
-    {"type": "timeline", "events": [["01/03/2026", "Distribuído"]]},
+    {"type": "kpi", "items": [["CNJ", "0001234-56", "Processo analisado"]]},
+    {"type": "data_cards", "columns": 3, "items": [["CNJ", "..."]]},
+    {"type": "table", "headers": ["Col A"], "rows": [["valor"]], "col_widths_cm": [16.5]},
+    {"type": "timeline", "events": [["01/03", "..."]]},
     {"type": "quote", "text": "...", "author": "STJ · REsp ..."},
-    {"type": "callout", "text": "...", "kind": "info"},
-    {"type": "code", "text": "comando --flag"},
-    {"type": "signature", "name": "Magistrado(a)", "role": "Juiz(a)", "local_data": "..."}
+    {"type": "callout", "kind": "warn", "text": "..."},
+    {"type": "bullets", "items": ["..."]},
+    {"type": "code", "text": "comando"},
+    {"type": "signature", "name": "...", "role": "...", "local_data": "..."}
   ]
 }
 
 Exit codes:
-    0 = sucesso
-    1 = erro de argumento / JSON inválido
-    2 = erro na geração
-    3 = erro na conversão PDF
+    0 sucesso · 1 erro de JSON · 2 erro na geração · 3 erro na conversão PDF
 """
 
 from __future__ import annotations
@@ -51,17 +58,18 @@ from docx_builder import Report  # noqa: E402
 
 
 SECTION_HANDLERS = {
-    "heading": lambda r, s: r.add_heading(s["text"], level=s.get("level", 1)),
+    "heading": lambda r, s: r.add_heading(
+        s["text"], level=s.get("level", 1), numeral=s.get("numeral")
+    ),
     "lead": lambda r, s: r.add_lead(s["text"]),
     "paragraph": lambda r, s: r.add_paragraph(s["text"], justify=s.get("justify", True)),
     "bullets": lambda r, s: r.add_bullets(s["items"]),
+    "kpi": lambda r, s: r.add_kpi([tuple(x) for x in s["items"]]),
     "data_cards": lambda r, s: r.add_data_cards(
         [tuple(x) for x in s["items"]], columns=s.get("columns", 2)
     ),
     "table": lambda r, s: r.add_table(
-        s["headers"],
-        s["rows"],
-        col_widths_cm=s.get("col_widths_cm"),
+        s["headers"], s["rows"], col_widths_cm=s.get("col_widths_cm"),
     ),
     "timeline": lambda r, s: r.add_timeline([tuple(x) for x in s["events"]]),
     "quote": lambda r, s: r.add_quote(s["text"], s.get("author", "")),
@@ -78,10 +86,12 @@ def build_report(data: dict) -> Report:
     r = Report(
         titulo=meta.get("titulo", "Relatório TecJustica"),
         subtitulo=meta.get("subtitulo", ""),
-        autor=meta.get("autor", "TecJustica"),
-        data=meta.get("data", ""),
-        cnj=meta.get("cnj", ""),
+        eyebrow=meta.get("eyebrow", "RELATÓRIO PROCESSUAL"),
+        classificacao=meta.get("classificacao", "DOCUMENTO RESERVADO"),
+        numero_documento=meta.get("numero_documento", ""),
+        autor=meta.get("autor", "TecJustica · Assessoria Judicial"),
         orgao=meta.get("orgao", "TecJustica · Assessoria Judicial com IA"),
+        metadata=[tuple(x) for x in meta.get("metadata", [])],
     )
 
     if data.get("cover", True):

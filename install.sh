@@ -11,6 +11,7 @@
 #   - browser-use CLI (para pje-download / cjf-jurisprudencia)
 #   - LibreOffice headless (para tecjustica-docx converter DOCX -> PDF)
 #   - python-docx (para tecjustica-docx gerar DOCX)
+#   - Fontes editoriais (EB Garamond + IBM Plex) para tecjustica-docx
 #   - Variaveis de ambiente TECJUSTICA_API_KEY e TECJUSTICA_PARSE_API_KEY
 #
 # O que NAO instala (por design):
@@ -32,6 +33,7 @@
 #   --skip-browser-use    Nao instala browser-use CLI
 #   --skip-libreoffice    Nao instala LibreOffice (necessario para tecjustica-docx)
 #   --skip-python-docx    Nao instala python-docx (necessario para tecjustica-docx)
+#   --skip-fonts          Nao instala fontes editoriais (EB Garamond + IBM Plex)
 #   --skip-env            Nao configura variaveis no ~/.bashrc
 #   -h, --help            Mostra esta ajuda
 # ==============================================================================
@@ -69,6 +71,7 @@ SKIP_CHROME=0
 SKIP_BROWSER_USE=0
 SKIP_LIBREOFFICE=0
 SKIP_PYTHON_DOCX=0
+SKIP_FONTS=0
 SKIP_ENV=0
 
 usage() {
@@ -84,6 +87,7 @@ while [[ $# -gt 0 ]]; do
     --skip-browser-use) SKIP_BROWSER_USE=1; shift ;;
     --skip-libreoffice) SKIP_LIBREOFFICE=1; shift ;;
     --skip-python-docx) SKIP_PYTHON_DOCX=1; shift ;;
+    --skip-fonts)       SKIP_FONTS=1; shift ;;
     --skip-env)         SKIP_ENV=1; shift ;;
     -h|--help)          usage; exit 0 ;;
     *) error "Opcao desconhecida: $1"; usage; exit 1 ;;
@@ -135,6 +139,27 @@ else
   warn "Voce precisara instalar Node.js e Chrome manualmente."
 fi
 [[ -n "$PKG_MANAGER" ]] && info "Gerenciador de pacotes detectado: $PKG_MANAGER"
+
+# -----------------------------------------------------------------------------
+# Sudo upfront — cachear credencial para o resto do script
+# -----------------------------------------------------------------------------
+if [[ "$CHECK_ONLY" != "1" && "$OS_NAME" == "Linux" && "$PKG_MANAGER" != "brew" ]]; then
+  step "Autenticacao sudo"
+  info "O instalador vai precisar do sudo para instalar pacotes do sistema"
+  info "(Node.js, Chrome, LibreOffice, fontes). Vamos pedir a senha uma unica vez"
+  info "e manter a sessao ativa durante toda a instalacao."
+  echo
+  if ! sudo -v; then
+    error "Nao foi possivel obter privilegios de sudo. Abortando."
+    error "Rode o script em um terminal interativo, nao via curl | bash sem tty."
+    exit 1
+  fi
+  # Manter a credencial sudo viva enquanto o script roda
+  (while true; do sudo -n true 2>/dev/null; sleep 60; done) &
+  SUDO_KEEPALIVE_PID=$!
+  trap 'kill $SUDO_KEEPALIVE_PID 2>/dev/null || true' EXIT
+  ok "Sudo autenticado · credencial sera renovada automaticamente"
+fi
 
 # -----------------------------------------------------------------------------
 # 1. Checar / instalar Node.js 18+
@@ -365,9 +390,78 @@ else
 fi
 
 # -----------------------------------------------------------------------------
-# 6. Checar Claude Code (nao instala — so avisa)
+# 6. Checar / instalar fontes editoriais (para tecjustica-docx)
 # -----------------------------------------------------------------------------
-step "6. Claude Code"
+install_fonts() {
+  if [[ "$CHECK_ONLY" == "1" ]]; then return 0; fi
+  case "$PKG_MANAGER" in
+    apt)
+      info "Instalando fontes editoriais (EB Garamond + IBM Plex + Inconsolata + Caladea + Carlito)..."
+      sudo apt-get install -y \
+        fonts-ebgaramond \
+        fonts-ebgaramond-extra \
+        fonts-ibm-plex \
+        fonts-inconsolata \
+        fonts-crosextra-caladea \
+        fonts-crosextra-carlito
+      ;;
+    dnf)
+      info "Instalando fontes editoriais via dnf..."
+      sudo dnf install -y \
+        ebgaramond-fonts \
+        ibm-plex-sans-fonts \
+        ibm-plex-mono-fonts \
+        inconsolata-fonts \
+        google-caladea-fonts \
+        google-carlito-fonts
+      ;;
+    brew)
+      info "Instalando fontes editoriais via brew cask..."
+      brew tap homebrew/cask-fonts 2>/dev/null || true
+      brew install --cask font-eb-garamond font-ibm-plex font-inconsolata
+      ;;
+    *)
+      error "Instale manualmente: EB Garamond + IBM Plex + Inconsolata"
+      return 1
+      ;;
+  esac
+  # Atualizar cache de fontes do sistema
+  command -v fc-cache >/dev/null 2>&1 && fc-cache -f >/dev/null 2>&1 || true
+}
+
+check_fonts() {
+  if ! command -v fc-list >/dev/null 2>&1; then return 1; fi
+  local fonts
+  fonts=$(fc-list 2>/dev/null || true)
+  [[ -n "$fonts" ]] || return 1
+  [[ "$fonts" == *"EB Garamond"* ]] || return 1
+  [[ "$fonts" == *"IBM Plex Sans"* ]] || return 1
+  [[ "$fonts" == *"IBM Plex Mono"* ]] || return 1
+  return 0
+}
+
+step "6. Fontes editoriais (tecjustica-docx)"
+if [[ "$SKIP_FONTS" == "1" ]]; then
+  warn "Pulando instalacao das fontes editoriais (--skip-fonts)"
+elif check_fonts; then
+  ok "Fontes editoriais ja instaladas (EB Garamond + IBM Plex)"
+else
+  if [[ "$CHECK_ONLY" == "1" ]]; then
+    warn "Fontes editoriais faltando — tecjustica-docx usara fallbacks genericos"
+  else
+    install_fonts || warn "Falha ao instalar fontes editoriais."
+    if check_fonts; then
+      ok "Fontes editoriais instaladas com sucesso."
+    else
+      warn "Fontes nao detectadas apos instalacao. Rode 'fc-cache -f' e tente novamente."
+    fi
+  fi
+fi
+
+# -----------------------------------------------------------------------------
+# 7. Checar Claude Code (nao instala — so avisa)
+# -----------------------------------------------------------------------------
+step "7. Claude Code"
 if command -v claude >/dev/null 2>&1; then
   ok "Claude Code $(claude --version 2>/dev/null || echo instalado)"
 else
@@ -376,7 +470,7 @@ else
 fi
 
 # -----------------------------------------------------------------------------
-# 7. Configurar variaveis de ambiente
+# 8. Configurar variaveis de ambiente
 # -----------------------------------------------------------------------------
 SHELL_RC="$HOME/.bashrc"
 if [[ -n "${ZSH_VERSION:-}" ]] || [[ "${SHELL:-}" == */zsh ]]; then
@@ -434,7 +528,7 @@ write_env_block() {
   ok "Bloco TecJustica escrito em $SHELL_RC"
 }
 
-step "7. Variaveis de ambiente (${SHELL_RC/$HOME/~})"
+step "8. Variaveis de ambiente (${SHELL_RC/$HOME/~})"
 
 if [[ "$SKIP_ENV" == "1" ]]; then
   warn "Pulando configuracao de variaveis (--skip-env)"
@@ -484,7 +578,7 @@ MSG
 fi
 
 # -----------------------------------------------------------------------------
-# 8. Verificacao final
+# 9. Verificacao final
 # -----------------------------------------------------------------------------
 step "Resumo"
 
@@ -502,6 +596,7 @@ verify "Google Chrome"            "check_chrome"
 verify "browser-use CLI"          "check_browser_use"
 verify "LibreOffice headless"     "check_libreoffice"
 verify "python-docx"              "check_python_docx"
+verify "Fontes editoriais"        "check_fonts"
 verify "Claude Code (claude)"     "command -v claude"
 
 # Recarregar $SHELL_RC numa subshell so para o resumo final
@@ -522,7 +617,7 @@ else
 fi
 
 # -----------------------------------------------------------------------------
-# 9. Proximos passos
+# 10. Proximos passos
 # -----------------------------------------------------------------------------
 cat <<DONE
 

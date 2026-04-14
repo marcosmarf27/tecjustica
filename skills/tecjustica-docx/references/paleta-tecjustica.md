@@ -1,89 +1,111 @@
-# Paleta e Tipografia TecJustica
+# Paleta e Tipografia · Edição Executiva
 
-Referência visual oficial da skill `tecjustica-docx`.
+Referência visual oficial da skill `tecjustica-docx`. O design foi calibrado no padrão de relatórios executivos de bancas de investimento (Goldman Sachs, JP Morgan, Morgan Stanley) e consultorias top-tier (McKinsey, BCG, Bain, Deloitte, PwC), adaptado ao contexto judicial brasileiro.
 
-## Origem das cores
+## Conceito visual
 
-As cores foram extraídas do substack oficial TecJustica (tecjustica.substack.com) por análise do CSS gerado pelo tema. A paleta do Substack indica uma cor primária configurada pelo autor, que no caso do TecJustica é um indigo vibrante, alinhado ao posicionamento "tecnologia + justiça".
+**Sobriedade institucional**. A aparência busca transmitir autoridade jurídica, precisão técnica e formalidade executiva — o tipo de documento que você entregaria para um banco, um tribunal superior ou um conselho administrativo. Nada de cores vibrantes, gradientes ou ícones. Apenas navy profundo, acento ocre (dourado envelhecido), fundos creme e hairlines dourados muito finas.
 
-## Cores principais
+## Paleta oficial
 
-| Nome | Hex | RGB | Uso |
-|---|---|---|---|
-| Indigo | `#4F46E5` | 79 · 70 · 229 | Primária. Cabeçalhos de tabela, barras laterais, bordas de quote, cor de ícones de info |
-| Indigo Dark | `#3A30E2` | 58 · 48 · 226 | Título da capa, H1. Usado quando precisa mais peso visual |
-| Orange | `#FF6719` | 255 · 103 · 25 | Acento. Divisores decorativos, callouts de warn, highlights ocasionais |
-| Dark | `#363737` | 54 · 55 · 55 | Corpo de texto. Preferido a preto puro por ser mais suave |
-| Medium | `#757575` | 117 · 117 · 117 | Metadados, legendas de tabela, rodapé, placeholder |
-| Light | `#B7B7B7` | 183 · 183 · 183 | Bordas muito sutis, separadores |
-
-## Cores de fundo
-
-| Nome | Hex | Uso |
+| Token | Hex | Uso |
 |---|---|---|
-| Indigo Soft | `#E8E7FB` | Fundo de callouts info, células de timeline |
-| Orange Soft | `#FFF0E6` | Fundo de callouts warn |
-| Soft BG | `#F5F5FA` | Fundo de data cards, linhas alternadas de tabela |
-| Quote BG | `#F8F7FF` | Fundo de citações de jurisprudência |
-| Code BG | `#F2F2F7` | Fundo de blocos de código |
-| Divider | `#D8D7EE` | Bordas de tabelas e cards |
+| Navy | `#12223F` | Primária · títulos, numerais de seção, cabeçalhos de tabela |
+| Navy Deep | `#0A1428` | Títulos da capa, barras institucionais do topo |
+| Ocre | `#A67C2E` | Acento único · linhas, divisórias, quotes, callouts warn |
+| Ocre Light | `#C9A96E` | Tagline da capa, hairlines primárias |
+| Cream | `#F6F1E6` | Fundo de metadata grid, data cards, callouts |
+| Cream Dark | `#ECE4D1` | Linhas alternadas sutis em tabelas |
+| Body | `#2B2B2B` | Corpo de texto (nunca preto puro) |
+| Muted | `#6B6B6B` | Labels, legendas, paginação, metadata secundária |
+| Hairline | `#D4C9A8` | Linhas divisórias internas (0.25pt–0.5pt) |
 
-## Tipografia
+## Tipografia editorial
 
-A combinação usada busca equilíbrio entre autoridade jurídica (serifa) e legibilidade moderna (sem serifa).
+Três famílias apenas, com papéis bem definidos:
 
-### Georgia — Headings e citações
+### EB Garamond — Display + Body
 
-Serifa clássica, disponível em todos os sistemas operacionais modernos. Transmite autoridade e tradição, adequada a documentos judiciais. Usada em:
+Serifa transicional clássica inspirada no Garamond do século XVI, redesenhada por Georg Duffner com ajustes modernos de contraste e hinting. Transmite autoridade tipográfica sem parecer pesada ou antiquada. É a fonte que dá a alma editorial ao relatório — a diferença imediata entre "parece profissional" e "parece estudante".
 
-- Títulos da capa (34pt · Indigo Dark)
-- Headings nível 1 (22pt · Indigo Dark)
-- Headings nível 2 (16pt · Indigo)
-- Headings nível 3 (13pt · Indigo)
-- Texto de citações (11pt · itálico)
-- Valores destacados em data cards (13pt · Indigo Dark)
-- Nome na assinatura (12pt · Indigo Dark)
+| Uso | Tamanho | Peso |
+|---|---|---|
+| Título da capa | 42pt | Bold |
+| Subtítulo da capa | 16pt | Italic |
+| Numerais MMXXVI da capa | 24pt | Bold |
+| H1 com numeral lateral | 26pt | Bold |
+| H2 | 16pt | Bold Italic |
+| Lead paragraphs (destaque) | 14pt | Italic |
+| Corpo | 11pt | Regular |
+| Valores destacados em data cards | 13–14pt | Bold |
+| Quote de jurisprudência | 13pt | Italic |
+| KPI numerais | 26pt | Bold |
+| Nome na assinatura | 13pt | Bold |
 
-### Calibri — Corpo
+### IBM Plex Sans — Labels e Eyebrows
 
-Sans-serif humanista, padrão do Microsoft Word desde 2007. Excelente legibilidade em tela e impressão. Usada em:
+Sans-serif humanista corporativa desenhada pela IBM. Usada exclusivamente em caixa alta com tracking amplo (+160 a +400 units) para labels, eyebrows, classificações e atribuições de quotes. Cria o contraste moderno contra a serifa editorial.
 
-- Parágrafos comuns (11pt · Dark · justificado · 1.25 line-spacing)
-- Listas com bullets (11pt · Dark)
-- Labels de metadados (9pt · Medium)
-- Labels de data cards (8pt · Medium · maiúsculas)
-- Cabeçalho e rodapé (9pt · Medium)
+| Uso | Tamanho | Tracking |
+|---|---|---|
+| Eyebrow da capa ("RELATÓRIO PROCESSUAL · VOL. I") | 9pt | +400 |
+| Tag de classificação ("RESERVADO") | 9pt | +200 |
+| Labels de metadata grid | 7pt | +220 |
+| Labels de data cards | 7pt | +220 |
+| Label "PREPARADO POR" | 7pt | +240 |
+| Cabeçalhos de tabela | 8pt | +200 |
+| H3 | 10pt | +160 |
+| Rodapé institucional | 7pt | +160 |
+| Atribuição de quotes | 8pt | +160 |
+| Cargo na assinatura | 8pt | +200 |
+| Label de callout ("NOTA", "ATENÇÃO") | 8pt | +240 |
 
-### Consolas — Código e identificadores técnicos
+### IBM Plex Mono — Document ID, numerais, paginação
 
-Monoespaçada. Usada em:
+Monoespaçada institucional da IBM. Usada para identificadores únicos, datas em formato técnico, números de página e valores numéricos que precisam alinhar verticalmente em tabelas. Dá ao documento o ar de "registro oficial" que relatórios corporativos têm.
 
-- Blocos de código (10pt · Dark)
-- Datas da timeline (10pt · Indigo Dark · bold)
-- Valores de CNJ na capa (11pt · Dark)
+| Uso | Tamanho | Tracking |
+|---|---|---|
+| Número do documento na capa ("TJ-CE / 2026 / 024") | 9pt | +80 |
+| Numerais de H1 ("01", "02", "03") | 10pt | +120 |
+| Datas da timeline | 9pt | +40 |
+| Valores numéricos em metadata (CNJ, R$) | 11pt | 0 |
+| Paginação do rodapé ("01 / 08") | 7pt | 0 |
+| Blocos de código | 9pt | 0 |
 
-## Fallbacks de fonte (Linux sem Microsoft fonts)
+## Instalação das fontes
 
-Se as fontes Georgia / Calibri / Consolas não estiverem instaladas, o LibreOffice substitui automaticamente:
-
-| Fonte original | Fallback no LibreOffice |
-|---|---|
-| Georgia | Liberation Serif ou DejaVu Serif |
-| Calibri | Carlito (pacote `fonts-crosextra-carlito`) |
-| Consolas | Liberation Mono ou DejaVu Sans Mono |
-
-Para garantir fidelidade total ao design:
+No Ubuntu/Debian/WSL:
 
 ```bash
-sudo apt install -y ttf-mscorefonts-installer fonts-crosextra-carlito
+sudo apt install -y fonts-ebgaramond fonts-ebgaramond-extra fonts-ibm-plex fonts-inconsolata fonts-crosextra-caladea fonts-crosextra-carlito
+```
+
+Essas são as dependências do `install.sh` para a skill `tecjustica-docx`. Sem elas, o LibreOffice substitui automaticamente por fallbacks como Liberation Serif e Carlito, o que compromete visivelmente a apresentação.
+
+No macOS:
+
+```bash
+brew install --cask font-eb-garamond font-ibm-plex font-inconsolata
 ```
 
 ## Regras de uso
 
-1. **Nunca usar preto puro** (`#000000`) — sempre Dark (`#363737`) para corpo e Indigo Dark para títulos
-2. **Orange é acento, não estrutura** — nunca preencher grandes áreas em laranja; usar em divisores de até 14 caracteres, bordas finas, ou callouts pequenos
-3. **Indigo é a estrutura** — cabeçalhos de tabela, barras de capa, bordas principais
-4. **Contraste mínimo 4.5:1** — todas as combinações de texto/fundo foram validadas
-5. **Bullet automático**, nunca `•` manual — usar `add_bullets()` da classe `Report`
-6. **Justificação no corpo, alinhamento à esquerda em leads** — legibilidade
-7. **Line spacing 1.25** — equilíbrio entre densidade e respiração
+1. **EB Garamond no corpo, sempre.** A combinação "sans-serif no corpo + serifa no título" lê como blog corporativo. Relatórios executivos usam serifa no corpo — é a diferença invisível mais importante entre "polido" e "amador".
+2. **Labels em caixa alta com tracking amplo.** Nunca misture title case e caps sem tracking. O respiro entre as letras é o que sinaliza cuidado tipográfico.
+3. **Datas em formato longo.** Nunca `14/04/26` no corpo ou na capa — use `14 de abril de 2026` ou `14 · Abril · 2026`. Formato curto `14/04/2026` só em tabelas, timelines e metadata técnica.
+4. **Hairlines em vez de bordas grossas.** Todas as divisórias são de 0.25–0.5pt em Ocre Light (`#C9A96E`) ou Hairline (`#D4C9A8`). Bordas de 2pt são amadoras.
+5. **Navy profundo, nunca preto puro.** `#0A1428` ou `#12223F` para títulos e barras institucionais. `#2B2B2B` para o corpo.
+6. **Ocre é acento, nunca estrutura.** Uma página pode ter no máximo 2 pontos de ocre: o hairline após o eyebrow + um callout warn, por exemplo.
+7. **Espaço em branco controlado.** A capa é densa, preenchida, institucional. O interior tem margens generosas assimétricas (externa maior que interna).
+8. **Numerais de H1 em mono.** "01", "02", "03" em IBM Plex Mono 10pt ocre — nunca em serif, nunca em arábicos grandes.
+9. **Line height 1.35 no corpo.** Nem 1.15 (amontoado) nem 1.5 (frouxo). O 1.35 é o que relatórios editoriais usam.
+10. **Tabelas sem bordas verticais.** Apenas 3 linhas horizontais: topo (2pt navy), abaixo do header (1pt navy), base (1pt navy). Linhas internas em Hairline 0.25pt.
+
+## Por que essas escolhas
+
+A paleta navy + ocre vem da tradição de relatórios institucionais do século XX: JP Morgan, Coutts, bancos de investimento europeus. É uma combinação que sobrevive décadas sem datar — enquanto purple gradients, corais e tipografias geométricas vêm e vão, navy + ocre permanece.
+
+A escolha de EB Garamond em vez de Georgia ou Cambria é deliberada: Garamond tem contraste mais alto, pernas mais finas, itálicos mais elegantes — lê como livro de direito, não como documento corporativo genérico.
+
+A combinação IBM Plex Sans + Mono em vez de Helvetica ou Arial é uma escolha contemporânea: Plex é a tipografia institucional mais bem desenhada dos últimos 10 anos, livre, com peso, contraste e tracking otimizados para interfaces executivas.
