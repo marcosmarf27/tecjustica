@@ -1,0 +1,18 @@
+# Nao distribuir no GitHub - apenas skills, plugin metadata e README
+specs/
+docs/
+.claude/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Rascunhos temporarios
+*.draft.md
+.plans/
+
+# Chaves de API locais (NUNCA commitar)
+skills/tecjustica-parse/config.env
+**/config.env
+.env
+.env.local

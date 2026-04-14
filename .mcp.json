@@ -1,8 +1,14 @@
 {
   "mcpServers": {
     "tecjustica": {
-      "type": "streamable-http",
-      "url": "https://mcp.tecjustica.com/mcp"
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://tecjusticamcp-lite-production.up.railway.app/mcp",
+        "--header",
+        "Authorization: Bearer ${TECJUSTICA_API_KEY}"
+      ]
     }
   }
 }
