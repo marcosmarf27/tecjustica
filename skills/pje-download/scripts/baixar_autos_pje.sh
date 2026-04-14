@@ -5,45 +5,101 @@
 # Uso:
 #   ./baixar_autos_pje.sh NNNNNNN-DD.AAAA.J.TT.OOOO
 #   ./baixar_autos_pje.sh NNNNNNN-DD.AAAA.J.TT.OOOO --output ~/Downloads
+#   ./baixar_autos_pje.sh --login                     # so faz login inicial
 #
-# Primeiro uso: Chrome abre para login. Cookies salvos para próximas vezes.
+# Modos:
+#   Download: navega e baixa o PDF do processo. Se cookies invalidos, abre
+#             Chrome e aguarda login manual (detecta TTY vs non-TTY).
+#   Login:    apenas abre Chrome, aguarda login manual, salva cookies e sai.
+#             Util para primeira execucao ou quando cookies expiram.
 #
-# Fluxo: Login → Painel Usuário → Filtros Tarefas → Número processo →
-#        Pesquisar → Tarefa → Processo → Abrir autos → Download → curl
+# Compatibilidade TTY:
+#   - Com TTY (usuario rodando direto): aceita ENTER apos login OU detecta
+#     automaticamente quando a tela de login sai (o que vier primeiro).
+#   - Sem TTY (Claude Code chamando o script): poll puro do estado do
+#     browser-use a cada 5s, timeout 5 min. Nao trava em `read`.
+#
+# Fluxo download: Login → Painel Usuário → Filtros Tarefas → Numero processo →
+#                 Pesquisar → Tarefa → Processo → Abrir autos → Download → curl
 # ==============================================================================
 
 export PATH="$HOME/.browser-use-env/bin:$PATH"
 COOKIES_FILE="$HOME/.browser-use/pje_cookies.json"
 PJE_URL="https://pje.tjce.jus.br/"
 
-# --- Parâmetros ---
-NUMERO="${1:-}"
-
-# Destino padrão: raiz do projeto Claude Code (fallback para CWD quando rodado fora do Claude)
+# --- Parametros ---
+MODE="download"
+NUMERO=""
 OUTPUT_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
 
-if [[ -z "$NUMERO" ]]; then
-    echo "Uso: $0 <numero-processo> [--output <dir>]"
-    echo "Ex:  $0 NNNNNNN-DD.AAAA.J.TT.OOOO"
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --login)
+            MODE="login"
+            shift
+            ;;
+        --output)
+            if [[ -z "${2:-}" ]]; then
+                echo "ERRO: --output requer um caminho"
+                exit 1
+            fi
+            OUTPUT_DIR="$2"
+            mkdir -p "$OUTPUT_DIR"
+            shift 2
+            ;;
+        -h|--help)
+            cat <<HELP
+Uso:
+  $0 <numero-processo>                   # baixa autos
+  $0 <numero-processo> --output <dir>    # baixa para pasta especifica
+  $0 --login                             # so faz login (1a execucao ou cookies expirados)
+
+Exemplos:
+  $0 NNNNNNN-DD.AAAA.J.TT.OOOO
+  $0 NNNNNNN-DD.AAAA.J.TT.OOOO --output ~/Downloads
+  $0 --login
+
+Variaveis de ambiente:
+  CLAUDE_PROJECT_DIR   destino padrao quando rodado via Claude Code
+                       (fallback: PWD atual)
+HELP
+            exit 0
+            ;;
+        *)
+            if [[ -n "$NUMERO" ]]; then
+                echo "ERRO: argumento inesperado '$1' (numero ja informado: $NUMERO)"
+                exit 1
+            fi
+            NUMERO="$1"
+            shift
+            ;;
+    esac
+done
+
+if [[ "$MODE" == "download" ]]; then
+    if [[ -z "$NUMERO" ]]; then
+        echo "Uso: $0 <numero-processo> [--output <dir>]"
+        echo "     $0 --login"
+        echo ""
+        echo "Destino padrao: \$CLAUDE_PROJECT_DIR (raiz do projeto) ou CWD."
+        exit 1
+    fi
+
+    if [[ ! "$NUMERO" =~ ^[0-9]{7}-[0-9]{2}\.[0-9]{4}\.[0-9]\.[0-9]{2}\.[0-9]{4}$ ]]; then
+        echo "ERRO: Formato invalido: $NUMERO"
+        echo "Esperado: NNNNNNN-DD.AAAA.J.TT.OOOO"
+        exit 1
+    fi
+
+    OUTPUT_FILE="$OUTPUT_DIR/$NUMERO.pdf"
+
+    echo "=== PJE Download Autos ==="
+    echo "Processo: $NUMERO"
     echo ""
-    echo "Destino padrao: \$CLAUDE_PROJECT_DIR (raiz do projeto) ou CWD."
-    echo "Use --output para forcar outra pasta."
-    exit 1
+else
+    echo "=== PJE Login (manual) ==="
+    echo ""
 fi
-
-[[ "${2:-}" == "--output" && -n "${3:-}" ]] && { OUTPUT_DIR="$3"; mkdir -p "$OUTPUT_DIR"; }
-
-# Validar formato
-if [[ ! "$NUMERO" =~ ^[0-9]{7}-[0-9]{2}\.[0-9]{4}\.[0-9]\.[0-9]{2}\.[0-9]{4}$ ]]; then
-    echo "ERRO: Formato inválido: $NUMERO"
-    exit 1
-fi
-
-OUTPUT_FILE="$OUTPUT_DIR/$NUMERO.pdf"
-
-echo "=== PJE Download Autos ==="
-echo "Processo: $NUMERO"
-echo ""
 
 # ==========================================================================
 # Funções
@@ -69,12 +125,138 @@ esperar() {
 # Click + select all + type (evita duplicar em campos pré-preenchidos)
 preencher() { bu click "$1"; bu keys "Control+a"; bu type "$2"; }
 
+# Aguarda o usuario fazer login manual no Chrome ja aberto.
+#
+# Detecta login por PRESENCA de marcadores pos-login no state do browser-use
+# ("Abrir menu" ou "Quadro de avisos") -- os mesmos que o resto do script ja
+# usa para confirmar autenticacao. Nao confia em "tela de login sumiu", que
+# pode dar falso positivo em loadings intermediarios.
+#
+# Funciona em dois modos sem precisar sinalizacao externa:
+#
+#   - TTY (usuario rodando direto no terminal):
+#     `read -t 5` aguarda ENTER com timeout de 5s. A cada ciclo (venha ENTER
+#     ou venha timeout) checa o state. ENTER funciona como "pular espera" --
+#     o detector real continua sendo o state do browser.
+#
+#   - Sem TTY (Claude Code invocando via Bash tool):
+#     `sleep 5` + check de state em loop. Sem read.
+#
+# Retorna 0 quando os marcadores pos-login aparecem; 1 em timeout (5 min).
+aguardar_login() {
+    local max_iter=60 interval=5 i=0
+    local sucesso_re='Abrir menu\|Quadro de avisos'
+    local login_re='id=username\|id=kc-login'
+    local state
+
+    if [ -t 0 ]; then
+        echo "  Aguardando voce logar no Chrome aberto."
+        echo "  ENTER adianta a deteccao; ou espere deteccao automatica."
+        echo "  Timeout: 5 minutos."
+    else
+        echo "  Aguardando login via polling (cada ${interval}s, timeout 5 min)..."
+    fi
+
+    while [[ $i -lt $max_iter ]]; do
+        state=$(bu state 2>/dev/null || echo "")
+
+        # Sinal positivo: marcadores pos-login presentes
+        if echo "$state" | grep -q "$sucesso_re"; then
+            echo "    Login confirmado (pos-login visivel em $((i * interval))s)"
+            return 0
+        fi
+
+        # Nao esta logado -- espera o proximo ciclo
+        if [ -t 0 ]; then
+            # TTY: read com timeout; ENTER adianta, timeout tambem ok
+            if read -r -t "$interval" _ 2>/dev/null; then
+                # ENTER recebido -- recheca imediatamente (sem consumir ciclo)
+                state=$(bu state 2>/dev/null || echo "")
+                if echo "$state" | grep -q "$sucesso_re"; then
+                    echo "    Login confirmado apos ENTER"
+                    return 0
+                fi
+                if echo "$state" | grep -q "$login_re"; then
+                    echo "    Tela de login ainda visivel. Continue logando..."
+                fi
+            fi
+        else
+            sleep "$interval"
+        fi
+
+        i=$((i + 1))
+    done
+
+    echo "ERRO: Timeout aguardando login (5 min sem tela pos-login)"
+    echo "       Verifique a janela do Chrome. Se logou mas nao detectou,"
+    echo "       pode ser que o PJE mudou a UI -- abra um issue."
+    return 1
+}
+
 # Fecha tudo ao sair
 cleanup() { bu close 2>/dev/null || true; }
 trap cleanup EXIT
 
 # Verificação
 command -v browser-use &>/dev/null || { echo "ERRO: browser-use não instalado"; exit 1; }
+
+# ==========================================================================
+# MODO LOGIN: abre Chrome, aguarda login, salva cookies, sai.
+# ==========================================================================
+if [[ "$MODE" == "login" ]]; then
+    echo "Abrindo Chrome na tela de login do PJE..."
+    bu close || true
+    bu --profile "Default" --headed open "$PJE_URL"
+    sleep 3
+
+    # Tentar reaproveitar cookies antigos caso ainda sejam parcialmente validos
+    if [[ -f "$COOKIES_FILE" ]]; then
+        bu cookies import "$COOKIES_FILE" || true
+        bu open "$PJE_URL"
+        sleep 4
+    fi
+
+    # Se ja esta logado, salva e sai feliz
+    if bu state | grep -q "Abrir menu\|Quadro de avisos"; then
+        echo "    Ja estava logado. Atualizando cookies..."
+        bu cookies export "$COOKIES_FILE" || true
+        echo "    Cookies salvos em $COOKIES_FILE"
+        echo ""
+        echo "=== Login OK ==="
+        echo "Agora rode: $0 <numero-processo>"
+        exit 0
+    fi
+
+    cat <<'MSG'
+
+  +------------------------------------------------------------+
+  |  LOGIN NO PJE TJCE                                         |
+  |                                                            |
+  |  Abriu uma janela do Chrome com a tela de login.           |
+  |  Entre com CPF/CNPJ + senha ou certificado digital.        |
+  |                                                            |
+  |  O script detecta automaticamente quando voce concluir.    |
+  |  Se estiver em terminal interativo, ENTER tambem funciona. |
+  +------------------------------------------------------------+
+
+MSG
+
+    aguardar_login || exit 1
+    sleep 2
+
+    if ! bu state | grep -q "Abrir menu\|Quadro de avisos"; then
+        echo "ERRO: Tela pos-login nao apareceu. O login pode ter falhado."
+        echo "Veja a janela do Chrome e tente de novo."
+        exit 1
+    fi
+
+    bu cookies export "$COOKIES_FILE" || true
+    echo "    Cookies salvos em $COOKIES_FILE"
+    echo ""
+    echo "=== Login concluido ==="
+    echo "Agora rode: $0 <numero-processo>"
+    exit 0
+fi
 
 # ==========================================================================
 # 1. ABRIR PJE + RESTAURAR SESSÃO
@@ -101,22 +283,33 @@ fi
 # ==========================================================================
 if bu state | grep -q "id=username\|id=kc-login"; then
     if [[ -z "$HEADED_FLAG" ]]; then
-        # Estava headless mas precisa login — reabrir com janela
-        echo "    Cookies expiraram. Abrindo Chrome para login..."
+        # Estava headless mas precisa login — reabrir com janela visivel
+        echo "    Cookies expiraram ou primeira execucao. Reabrindo em --headed..."
         bu close || true
         bu --profile "Default" --headed open "$PJE_URL"
         sleep 3
     fi
-    echo ""
-    echo "  ┌──────────────────────────────────────────────┐"
-    echo "  │  Faça login no Chrome e pressione ENTER aqui │"
-    echo "  └──────────────────────────────────────────────┘"
-    echo ""
-    read -r -p "  > "
+
+    cat <<'MSG'
+
+  +--------------------------------------------------------------+
+  |  LOGIN NO PJE TJCE NECESSARIO                                |
+  |                                                              |
+  |  Uma janela do Chrome abriu com a tela de login.             |
+  |  Entre com CPF/CNPJ + senha ou certificado digital.          |
+  |                                                              |
+  |  O script detecta sozinho quando voce concluir o login.      |
+  |  Dica: para fazer apenas o login uma vez (sem baixar),       |
+  |        rode antes: bash <este script> --login                |
+  +--------------------------------------------------------------+
+
+MSG
+
+    aguardar_login || exit 1
     sleep 2
 fi
 
-bu state | grep -q "Abrir menu\|Quadro de avisos" || { echo "ERRO: Login falhou"; exit 1; }
+bu state | grep -q "Abrir menu\|Quadro de avisos" || { echo "ERRO: Login falhou (pos-login nao carregou)"; exit 1; }
 bu cookies export "$COOKIES_FILE" || true
 echo "    Login OK"
 
