@@ -308,7 +308,7 @@ Este e o **portal principal do plugin**. Sem esta chave, nenhuma das skills de a
 1. Acesse **https://tecjusticamcp-lite-production.up.railway.app/registro**
 2. Crie uma conta (email + senha)
 3. Faca login em **https://tecjusticamcp-lite-production.up.railway.app/** e gere uma API key no painel
-4. O valor retornado comeca com `mcp_` seguido de caracteres alfanumericos (ex: `mcp_4ef2e6bc187049949c41955150b76bd5`)
+4. O valor retornado comeca com `mcp_` seguido de 32 caracteres alfanumericos (ex: `mcp_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX`)
 5. **Copie e guarde em local seguro** — dependendo do painel, a chave pode nao ser exibida de novo
 
 ### 2.2 Chave da TecJustica Parse (opcional — so se for usar OCR)
@@ -317,7 +317,7 @@ Necessaria apenas se voce quiser usar a skill `tecjustica-parse` para extrair te
 
 1. Acesse **https://tecjustica-dashboard-production.up.railway.app/**
 2. Crie uma conta
-3. No painel, gere uma API key — comeca com `tjp_` (ex: `tjp_5e67cee9099f4b558c1f2e57b5f83aef`)
+3. No painel, gere uma API key — comeca com `tjp_` seguido de 32 caracteres alfanumericos (ex: `tjp_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX`)
 4. Copie e guarde
 
 > **Lembrete:** o cadastro do Dashboard (Parse) e **independente** do cadastro do MCP Lite. Voce precisa criar contas separadas em cada portal.
