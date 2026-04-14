@@ -67,8 +67,8 @@ https://tecjusticamcp-lite-production.up.railway.app/registro
 | Tool | Quando usar |
 |------|-------------|
 | `pdpj_visao_geral_processo` | Primeiro passo para qualquer analise por numero CNJ. Retorna resumo completo (tribunal, classe, assuntos, partes, status) e dispara indexacao em background para `pdpj_grep_documentos`. |
-| `pdpj_buscar_processos` | Busca processos por CPF ou CNPJ de uma parte. Aceita filtros opcionais por tribunal e situacao. Traz agregacoes para ajudar a refinar. |
-| `pdpj_buscar_precedentes` | Pesquisa jurisprudencia no Banco Nacional de Precedentes: sumulas, IRDR, repercussao geral, teses. Filtros por orgao (STF, STJ) e tipo. |
+| `pdpj_buscar_processos` | Busca processos por CPF ou CNPJ (somente digitos). Filtros opcionais: `tribunal` (sigla ou lista separada por virgula, max 5), `situacao` (ex: "Tramitando"), `search_after` (cursor retornado pela chamada anterior — use apenas o valor recebido, nunca invente). Maximo 10 resultados por chamada. |
+| `pdpj_buscar_precedentes` | Pesquisa jurisprudencia no Banco Nacional de Precedentes. Parametros: `busca` (texto, min 3 chars), `orgaos` (lista, ex: `["STF","STJ"]`), `tipos` (lista — valores validos: `SUM`, `SV`, `RG`, `IRDR`, `IRR`, `RR`, `CT`, `IAC`, `OJ`, `PUIL`), `pagina` (1-indexed, default 1). |
 | `pdpj_list_partes` | Lista todas as partes agrupadas por polo (ativo/passivo/terceiro) com advogados (OAB), CPF/CNPJ e enderecos. |
 | `pdpj_list_movimentos` | Linha do tempo do processo em ordem reversa. Filtro opcional por tipo (ex: "Decisao", "Peticao", "Audiencia"). |
 | `pdpj_list_documentos` | Lista documentos reais do processo (capas/stubs sao filtrados automaticamente). Retorna IDs para leitura. |
@@ -107,8 +107,10 @@ https://tecjusticamcp-lite-production.up.railway.app/registro
 ### Fluxo C — Tese juridica ou jurisprudencia
 
 1. Execute `pdpj_buscar_precedentes` com os termos-chave do caso.
-2. Para precedentes vinculantes, filtre por orgao (STF, STJ) e por tipo
-   (SUM para sumulas, IRDR, RG para repercussao geral, TESE).
+2. Para precedentes vinculantes, filtre por orgao (STF, STJ) e por tipo:
+   `SUM` (sumula), `SV` (sumula vinculante), `RG` (repercussao geral),
+   `IRDR`, `IRR` (recursos repetitivos), `CT` (tema). Valores invalidos
+   retornam lista vazia.
 3. Apresente cada precedente com orgao/numero, tese fixada, situacao
    (vigente/superado) e processos paradigma.
 
