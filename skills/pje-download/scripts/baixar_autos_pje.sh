@@ -3,8 +3,8 @@
 # baixar_autos_pje.sh — Baixa os autos de um processo do PJE (TJCE 1º Grau)
 #
 # Uso:
-#   ./baixar_autos_pje.sh 3000066-83.2025.8.06.0203
-#   ./baixar_autos_pje.sh 3000066-83.2025.8.06.0203 --output ~/Downloads
+#   ./baixar_autos_pje.sh NNNNNNN-DD.AAAA.J.TT.OOOO
+#   ./baixar_autos_pje.sh NNNNNNN-DD.AAAA.J.TT.OOOO --output ~/Downloads
 #
 # Primeiro uso: Chrome abre para login. Cookies salvos para próximas vezes.
 #
@@ -22,7 +22,7 @@ OUTPUT_DIR="."
 
 if [[ -z "$NUMERO" ]]; then
     echo "Uso: $0 <numero-processo> [--output <dir>]"
-    echo "Ex:  $0 3000066-83.2025.8.06.0203"
+    echo "Ex:  $0 NNNNNNN-DD.AAAA.J.TT.OOOO"
     exit 1
 fi
 
@@ -177,7 +177,7 @@ echo "    Filtros OK"
 # ==========================================================================
 # 5. PREENCHER NÚMERO E PESQUISAR
 #
-# Campo itNrProcesso aceita o número completo (ex: 3000066-83.2025.8.06.0203).
+# Campo itNrProcesso aceita o número completo (ex: NNNNNNN-DD.AAAA.J.TT.OOOO).
 # Botão Pesquisar é um <button> logo após os inputs.
 # Resultado: aparece uma tarefa com título [Sec], [Gab], [StArq], etc.
 # ==========================================================================

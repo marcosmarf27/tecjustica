@@ -60,7 +60,7 @@ Comece pelo **barato** e va para o **caro**:
 ### Passo 1 — Visao geral do processo
 
 ```
-pdpj_visao_geral_processo(numero_processo="3000066-83.2025.8.06.0203")
+pdpj_visao_geral_processo(numero_processo="NNNNNNN-DD.AAAA.J.TT.OOOO")
 ```
 
 Extraia: classe processual (acao penal publica, privada, inquerito, execucao penal), partes (MP, acusado, vitima), assuntos (tipificacao penal), volume de documentos, movimentacoes recentes. Esta chamada dispara a **indexacao dos documentos em background**.

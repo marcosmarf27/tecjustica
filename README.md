@@ -201,76 +201,142 @@ Necessaria apenas se voce quiser usar a skill `tecjustica-parse` para extrair te
 
 ---
 
-## Passo 3 — Configurar variaveis de ambiente
+## Passo 3 — Onde colocar as chaves de API
 
-Adicione as chaves ao seu `~/.bashrc` (ou `~/.zshrc` se usar zsh):
+**As chaves nao vao em nenhum arquivo de configuracao manual.** Elas sao lidas pelo plugin a partir de **variaveis de ambiente** do seu terminal. Quando o Claude Code for aberto, ele herda essas variaveis e as repassa para o servidor MCP e para a skill de OCR.
+
+### Resumo visual
+
+```
+Voce define no ~/.bashrc        ─┐
+  TECJUSTICA_API_KEY=mcp_...     │
+  TECJUSTICA_PARSE_API_KEY=tjp_  │
+                                 ▼
+Abre um novo terminal              (as variaveis ja estao no ambiente)
+                                 │
+                                 ▼
+Roda `claude` no terminal          (Claude Code herda as variaveis)
+                                 │
+                                 ▼
+Claude carrega o plugin            .mcp.json usa ${TECJUSTICA_API_KEY}
+                                 scripts da parse usam ${TECJUSTICA_PARSE_API_KEY}
+```
+
+### 3.1 Editar o `~/.bashrc` (ou `~/.zshrc` se usa zsh)
+
+Execute uma vez:
 
 ```bash
 cat >> ~/.bashrc <<'EOF'
 
-# TecJustica — chaves de API
+# TecJustica — chaves de API (duas distintas, prefixos diferentes)
 export TECJUSTICA_API_KEY=mcp_SUBSTITUA_PELA_SUA_CHAVE
-export TECJUSTICA_PARSE_API_KEY=tjp_SUBSTITUA_PELA_SUA_CHAVE   # opcional
+export TECJUSTICA_PARSE_API_KEY=tjp_SUBSTITUA_PELA_SUA_CHAVE   # opcional — so para OCR
 
-# browser-use CLI no PATH
+# browser-use CLI no PATH (para pje-download e cjf-jurisprudencia)
 export PATH="$HOME/.browser-use-env/bin:$PATH"
 EOF
 
-# Recarregar o shell
+# Recarregar o shell para aplicar agora
 source ~/.bashrc
 ```
 
-**Confirmar que as variaveis estao definidas:**
+Depois abra o arquivo `~/.bashrc` num editor e substitua `mcp_SUBSTITUA_PELA_SUA_CHAVE` pela chave real que voce gerou no [portal do MCP Lite](https://tecjusticamcp-lite-production.up.railway.app/), e `tjp_SUBSTITUA_PELA_SUA_CHAVE` pela chave do [Dashboard Parse](https://tecjustica-dashboard-production.up.railway.app/).
+
+### 3.2 Confirmar que as variaveis estao definidas
 
 ```bash
 echo "MCP:   $TECJUSTICA_API_KEY"
 echo "Parse: $TECJUSTICA_PARSE_API_KEY"
 ```
 
-Os dois valores devem aparecer. Se aparecer em branco, o Claude Code nao vai conseguir autenticar no MCP.
+Os dois valores devem aparecer com os prefixos corretos (`mcp_...` e `tjp_...`). Se aparecer em branco, o `~/.bashrc` nao foi recarregado — abra um novo terminal.
 
-> **Atencao:** o Claude Code **le as variaveis de ambiente do terminal onde ele e iniciado**. Se voce exportar a variavel depois de abrir o Claude, feche e reabra — a sessao em andamento nao ve a mudanca.
+### 3.3 Como o plugin usa cada variavel
 
-> **Alternativa para a chave Parse:** em vez de usar env var, voce pode copiar `skills/tecjustica-parse/config.env.example` para `skills/tecjustica-parse/config.env` dentro do diretorio do plugin instalado e preencher a chave la. O `.gitignore` garante que esse arquivo nao vai para repositorio.
+| Variavel | Quem le | Como usa |
+|----------|---------|---------|
+| `TECJUSTICA_API_KEY` | O arquivo `.mcp.json` do plugin | O campo `"Authorization: Bearer ${TECJUSTICA_API_KEY}"` e expandido automaticamente pelo Claude Code ao iniciar o servidor MCP via `npx mcp-remote`. Sem ela, o MCP retorna 401. |
+| `TECJUSTICA_PARSE_API_KEY` | O script `parse.sh` da skill `tecjustica-parse` | Passado como header `X-API-Key` para a API `https://marcosmarf27--tecjustica-parse-parseservice-serve.modal.run/parse/async`. |
+
+> ⚠️ **Importante:** o Claude Code **le as variaveis de ambiente do terminal onde voce iniciou o `claude`**. Se exportar a variavel **depois** de abrir o Claude, feche a sessao e reabra no mesmo terminal. A sessao em andamento nao recarrega env vars.
+
+> **Alternativa para a chave Parse (opcional):** em vez de env var, voce pode criar `skills/tecjustica-parse/config.env` dentro do diretorio do plugin instalado, com `TECJUSTICA_PARSE_API_KEY="tjp_..."`. O `parse.sh` carrega esse arquivo automaticamente. O `.gitignore` ja protege contra commits acidentais.
 
 ---
 
-## Passo 4 — Instalar o plugin
+## Passo 4 — Instalar o plugin (o MCP vem junto)
 
-Abra o Claude Code em qualquer diretorio:
+### Como funciona a instalacao do MCP
+
+Voce **nao precisa** rodar nenhum comando manual para "instalar o MCP TecJustica Lite". O plugin ja traz o arquivo `.mcp.json` na raiz, e o Claude Code **registra o servidor MCP automaticamente** quando o plugin e habilitado. O conteudo do `.mcp.json` distribuido e:
+
+```json
+{
+  "mcpServers": {
+    "tecjustica": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://tecjusticamcp-lite-production.up.railway.app/mcp",
+        "--header",
+        "Authorization: Bearer ${TECJUSTICA_API_KEY}"
+      ]
+    }
+  }
+}
+```
+
+Traduzindo: quando o Claude Code liga o plugin, ele executa `npx -y mcp-remote ...`, que inicia um **proxy stdio** local. Esse proxy abre uma conexao HTTPS persistente com o servidor MCP Lite em `https://tecjusticamcp-lite-production.up.railway.app/mcp`, autenticando com o Bearer token da variavel `TECJUSTICA_API_KEY`. Do ponto de vista do Claude, o servidor MCP e um processo stdio local — do lado da TecJustica, tudo roda em Railway, hospedado como servico HTTP.
+
+Voce so precisa de tres coisas para isso funcionar:
+
+1. Ter `node` + `npx` instalados (veja [1.2](#12-nodejs-18-necessario-para-npx-mcp-remote))
+2. Ter `TECJUSTICA_API_KEY` definida no terminal que abre o Claude
+3. Ter o plugin instalado (proximo passo)
+
+Voce **nao** precisa rodar `claude mcp add ...` manualmente — isso so seria necessario se estivesse configurando o MCP sem o plugin.
+
+### 4.1 Abrir o Claude Code
 
 ```bash
 cd ~
 claude
 ```
 
-Dentro da sessao, execute os comandos:
+### 4.2 Adicionar o marketplace do TecJustica
 
-### 4.1 Adicionar o marketplace
+Dentro da sessao do Claude Code, digite:
 
 ```
 /plugin marketplace add marcosmarf27/tecjustica
 ```
 
-Esperado: confirmacao de que adicionou o marketplace `tecjustica-plugins`.
+Esperado: o Claude confirma que adicionou o marketplace `tecjustica-plugins` (vindo do repo https://github.com/marcosmarf27/tecjustica).
 
-### 4.2 Instalar o plugin
+### 4.3 Instalar o plugin
 
 ```
 /plugin install tecjustica@tecjustica-plugins
 ```
 
-Isso instala o plugin globalmente, incluindo:
-- O servidor MCP (`.mcp.json` com `mcp-remote`)
-- As 6 skills (`tecjustica-mcp-lite`, `analise-processo-civil`, `analise-processo-penal`, `tecjustica-parse`, `pje-download`, `cjf-jurisprudencia`)
+Isso baixa e habilita o plugin globalmente. Em um unico comando, voce ganha:
 
-**Escopo de projeto (alternativa):** para instalar apenas no projeto atual, use:
+| O que e instalado | Como e carregado |
+|-------------------|------------------|
+| `.mcp.json` → servidor MCP TecJustica Lite | Claude registra automaticamente, chama `npx mcp-remote` em background, autentica com `TECJUSTICA_API_KEY` |
+| 6 skills (`tecjustica-mcp-lite`, `analise-processo-civil`, `analise-processo-penal`, `tecjustica-parse`, `pje-download`, `cjf-jurisprudencia`) | Carregadas como skills **model-invoked** — o Claude ativa a relevante quando o contexto bate |
+| Script bundled `scripts/parse.sh` (TecJustica Parse) | Referenciado via `${CLAUDE_SKILL_DIR}` (variavel expandida pelo Claude Code) |
+| Script bundled `scripts/baixar_autos_pje.sh` (PJE Download) | Idem |
+
+**Escopo de projeto (alternativa):** para instalar apenas no projeto atual e nao globalmente, use:
 
 ```
 /plugin install tecjustica@tecjustica-plugins --scope project
 ```
 
-### 4.3 Instalacao local (desenvolvimento)
+### 4.4 Instalacao local (desenvolvimento)
 
 Se voce clonou este repositorio e quer testar localmente sem publicar:
 
@@ -317,7 +383,7 @@ Voce deve ver as 6 skills listadas sob o namespace do plugin. Elas sao **model-i
 ### 5.4 Teste rapido
 
 ```
-Analise o processo 3000066-83.2025.8.06.0203
+Analise o processo NNNNNNN-DD.AAAA.J.TT.OOOO
 ```
 
 Se tudo estiver configurado, o Claude vai:
@@ -372,7 +438,7 @@ Apos instalar o plugin, as skills sao ativadas automaticamente. Basta conversar 
 ### Analise processual
 
 ```
-"Analise o processo 3000066-83.2025.8.06.0203"
+"Analise o processo NNNNNNN-DD.AAAA.J.TT.OOOO"
 
 "Faca uma visao geral do processo X e me diga em que fase esta"
 
@@ -418,7 +484,7 @@ Apos instalar o plugin, as skills sao ativadas automaticamente. Basta conversar 
 ### Download e OCR
 
 ```
-"Baixe os autos do processo 3000066-83.2025.8.06.0203 do PJE"
+"Baixe os autos do processo NNNNNNN-DD.AAAA.J.TT.OOOO do PJE"
 
 "Extraia o texto do PDF ./autos_3000066.pdf e salve em processo.md"
 
@@ -431,12 +497,12 @@ Apos instalar o plugin, as skills sao ativadas automaticamente. Basta conversar 
 
 ![Fluxo end-to-end](assets/images/workflow.jpg)
 
-Ordem recomendada para validar que tudo esta funcionando ponta-a-ponta. Use o processo de exemplo `3000066-83.2025.8.06.0203` (TJCE) ou um seu.
+Ordem recomendada para validar que tudo esta funcionando ponta-a-ponta. Use o processo de exemplo `NNNNNNN-DD.AAAA.J.TT.OOOO` (TJCE) ou um seu.
 
 ### 1. Validar o MCP
 
 ```
-Analise o processo 3000066-83.2025.8.06.0203
+Analise o processo NNNNNNN-DD.AAAA.J.TT.OOOO
 ```
 
 Esperado: Claude chama `pdpj_visao_geral_processo`, depois `pdpj_analise_essencial` ou `pdpj_mapa_documentos`, e retorna analise estruturada.
@@ -452,7 +518,7 @@ Esperado: Claude chama `pdpj_buscar_precedentes(busca="tutela antecipada", orgao
 ### 3. Validar download do PJE
 
 ```
-Baixe os autos do processo 3000066-83.2025.8.06.0203 do PJE
+Baixe os autos do processo NNNNNNN-DD.AAAA.J.TT.OOOO do PJE
 ```
 
 Esperado (primeiro uso):
@@ -462,13 +528,13 @@ Esperado (primeiro uso):
 4. **Voce loga manualmente** (CPF + senha ou certificado digital)
 5. Pressiona ENTER no terminal quando pedido
 6. Script continua: navega → pesquisa → abre autos → baixa o PDF
-7. Arquivo final: `./3000066-83.2025.8.06.0203.pdf` no diretorio atual
+7. Arquivo final: `./NNNNNNN-DD.AAAA.J.TT.OOOO.pdf` no diretorio atual
 8. Nas proximas vezes, o login e pulado (cookies salvos)
 
 ### 4. Validar OCR
 
 ```
-Extraia o texto do PDF ./3000066-83.2025.8.06.0203.pdf e salve em processo.md
+Extraia o texto do PDF ./NNNNNNN-DD.AAAA.J.TT.OOOO.pdf e salve em processo.md
 ```
 
 Esperado: Claude invoca `tecjustica-parse`, faz upload async para a API, faz polling do job, e salva o markdown em `processo.md`.
@@ -476,7 +542,7 @@ Esperado: Claude invoca `tecjustica-parse`, faz upload async para a API, faz pol
 ### 5. Analise completa
 
 ```
-Atue como assessor de gabinete e analise o processo 3000066-83.2025.8.06.0203, identificando rito, fase, decisoes pendentes e proximos passos
+Atue como assessor de gabinete e analise o processo NNNNNNN-DD.AAAA.J.TT.OOOO, identificando rito, fase, decisoes pendentes e proximos passos
 ```
 
 Esperado: Claude combina `analise-processo-civil` (ou `-penal`, conforme a classe) com `tecjustica-mcp-lite` para produzir analise completa com rito, fase, prazos, decisoes cabiveis e fundamentacao legal.

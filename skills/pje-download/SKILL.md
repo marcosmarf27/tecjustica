@@ -40,7 +40,7 @@ bash ${CLAUDE_SKILL_DIR}/scripts/baixar_autos_pje.sh "$ARGUMENTS" --output /past
 
 Se `$ARGUMENTS` estiver vazio, perguntar o número do processo ao usuário.
 
-O número do processo deve estar no formato `NNNNNNN-DD.AAAA.J.TT.OOOO` (ex: `3000066-83.2025.8.06.0203`).
+O número do processo deve estar no formato `NNNNNNN-DD.AAAA.J.TT.OOOO` (ex: `NNNNNNN-DD.AAAA.J.TT.OOOO`).
 
 **Primeiro uso:** o script abre o Chrome, mostra a tela de login do PJE e pede para o usuário fazer login manualmente (CPF/CNPJ + senha ou certificado digital). Após o login, o usuário pressiona ENTER no terminal. Os cookies são salvos em `~/.browser-use/pje_cookies.json` e reutilizados nas próximas execuções.
 

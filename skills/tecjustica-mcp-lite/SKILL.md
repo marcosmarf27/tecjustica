@@ -181,7 +181,7 @@ perito, destaque as conclusoes do laudo.
 
 ## Exemplos rapidos
 
-- "Analise o processo 3000066-83.2025.8.06.0203" → Fluxo A com
+- "Analise o processo NNNNNNN-DD.AAAA.J.TT.OOOO" → Fluxo A com
   `pdpj_analise_essencial`.
 - "Quais processos o CPF 12345678900 tem no TJSP?" → Fluxo B com filtro
   por tribunal.
