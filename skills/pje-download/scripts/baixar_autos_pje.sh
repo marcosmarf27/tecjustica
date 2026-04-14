@@ -18,11 +18,16 @@ PJE_URL="https://pje.tjce.jus.br/"
 
 # --- Parâmetros ---
 NUMERO="${1:-}"
-OUTPUT_DIR="."
+
+# Destino padrão: raiz do projeto Claude Code (fallback para CWD quando rodado fora do Claude)
+OUTPUT_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
 
 if [[ -z "$NUMERO" ]]; then
     echo "Uso: $0 <numero-processo> [--output <dir>]"
     echo "Ex:  $0 NNNNNNN-DD.AAAA.J.TT.OOOO"
+    echo ""
+    echo "Destino padrao: \$CLAUDE_PROJECT_DIR (raiz do projeto) ou CWD."
+    echo "Use --output para forcar outra pasta."
     exit 1
 fi
 

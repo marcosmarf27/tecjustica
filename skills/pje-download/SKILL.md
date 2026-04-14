@@ -33,7 +33,9 @@ Rodar o script bundled. Ele faz tudo sozinho: abre PJE, restaura cookies, navega
 bash ${CLAUDE_SKILL_DIR}/scripts/baixar_autos_pje.sh "$ARGUMENTS"
 ```
 
-Com pasta de destino:
+**Destino padrão:** raiz do projeto (`$CLAUDE_PROJECT_DIR`). O PDF sai em `$CLAUDE_PROJECT_DIR/NNNNNNN-DD.AAAA.J.TT.OOOO.pdf`, **nunca** dentro da pasta da skill ou de `scripts/`. Fora do Claude Code, cai no `$PWD` atual.
+
+Para forçar outro destino:
 ```bash
 bash ${CLAUDE_SKILL_DIR}/scripts/baixar_autos_pje.sh "$ARGUMENTS" --output /pasta/destino
 ```

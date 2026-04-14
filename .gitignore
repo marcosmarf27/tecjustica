@@ -11,8 +11,15 @@ Thumbs.db
 *.draft.md
 .plans/
 
+# Blog post local (nao publicado no GitHub, apenas para copiar em outras plataformas)
+blog-post.md
+assets/images/blog/
+
 # Chaves de API locais (NUNCA commitar)
 skills/tecjustica-parse/config.env
 **/config.env
 .env
 .env.local
+
+# PDFs de teste gerados por pje-download ou tecjustica-parse
+skills/**/*.pdf
