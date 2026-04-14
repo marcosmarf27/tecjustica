@@ -17,6 +17,7 @@ O Claude Code carrega o **plugin TecJustica**, que expoe 6 skills e registra o s
 - [Portais TecJustica](#portais-tecjustica)
 - [Plataforma suportada](#plataforma-suportada)
 - [Pre-requisitos](#pre-requisitos)
+- [Instalacao automatica (atalho)](#instalacao-automatica-atalho)
 - [Passo 1 — Instalar dependencias do sistema](#passo-1--instalar-dependencias-do-sistema)
 - [Passo 2 — Obter suas chaves de API](#passo-2--obter-suas-chaves-de-api)
 - [Passo 3 — Configurar variaveis de ambiente](#passo-3--configurar-variaveis-de-ambiente)
@@ -103,6 +104,48 @@ A tabela abaixo resume tudo. Os passos detalhados vem na proxima secao.
 | Chave API MCP (`mcp_...`) | MCP TecJustica | Secao 2.1 |
 | Chave API Parse (`tjp_...`) | `tecjustica-parse` | Secao 2.2 (opcional) |
 | Credenciais PJE TJCE | `pje-download` | Voce ja deve ter como magistrado/servidor/advogado |
+
+---
+
+## Instalacao automatica (atalho)
+
+Se voce quer pular os passos manuais, o repositorio traz um script `install.sh` que instala todas as dependencias, pede suas chaves de API interativamente e configura o `~/.bashrc`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/marcosmarf27/tecjustica/main/install.sh | bash
+```
+
+Ou, se preferir clonar antes para auditar:
+
+```bash
+git clone https://github.com/marcosmarf27/tecjustica.git
+cd tecjustica
+bash install.sh
+```
+
+O script cobre:
+
+1. Detecta plataforma (Linux nativo, WSL2 ou macOS)
+2. Instala Node.js 18+
+3. Instala Google Chrome
+4. Instala `browser-use` CLI
+5. Verifica se Claude Code esta instalado (avisa se faltar)
+6. Pede as duas chaves de API (MCP Lite e Parse) e escreve no `~/.bashrc`
+
+**Flags uteis:**
+
+| Flag | O que faz |
+|------|-----------|
+| `--check-only` | So diagnostica o que ja esta instalado, nao instala nada |
+| `--no-interactive` | Nao pede chaves (le `TECJUSTICA_API_KEY`/`TECJUSTICA_PARSE_API_KEY` do ambiente) |
+| `--skip-node` | Nao instala Node.js |
+| `--skip-chrome` | Nao instala Chrome |
+| `--skip-browser-use` | Nao instala browser-use |
+| `--skip-env` | Nao mexe no `~/.bashrc` |
+
+Depois do script terminar, **abra um novo terminal** para as variaveis serem carregadas e siga direto para o [Passo 4 — Instalar o plugin](#passo-4--instalar-o-plugin-o-mcp-vem-junto).
+
+> Se voce prefere fazer tudo manualmente (para entender o que esta acontecendo ou para adaptar a outra distro), ignore este atalho e siga os passos 1 a 5 abaixo.
 
 ---
 
