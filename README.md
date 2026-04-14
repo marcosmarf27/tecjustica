@@ -761,7 +761,20 @@ Esperado: Claude combina `analise-processo-civil` (ou `-penal`, conforme a class
 
 ## Licenca
 
-Apache-2.0
+[**PolyForm Noncommercial License 1.0.0**](./LICENSE)
+
+- **Uso nao-comercial e gratuito e irrestrito** — magistrados, servidores
+  publicos, universidades, pesquisadores, estudantes, ONGs e uso pessoal
+  podem instalar, usar, modificar e redistribuir livremente. A licenca
+  PolyForm NC considera orgaos publicos (TJ, TRF, STJ, MP, Defensoria, etc.)
+  como uso nao-comercial permitido, independente da fonte de financiamento.
+- **Uso comercial requer licenca paga** — escritorios de advocacia,
+  legaltechs, SaaS juridicos, consultorias e empresas privadas com fins
+  lucrativos precisam contratar licenca comercial antes de usar em producao.
+
+Detalhes completos, exemplos de casos e como contratar: [**COMMERCIAL.md**](./COMMERCIAL.md).
+
+Contato comercial: contato@tecjustica.com.br
 
 ---
 
