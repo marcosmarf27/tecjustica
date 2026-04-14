@@ -98,9 +98,11 @@ A tabela abaixo resume tudo. Os passos detalhados vem na proxima secao.
 |------|------------------|---------------|
 | Claude Code | Tudo | Secao 1.1 |
 | Node.js 18+ | MCP TecJustica (todas skills de analise) | Secao 1.2 |
-| `curl`, `python3`, `bash` | `tecjustica-parse` | Ja vem no Linux/WSL |
+| `curl`, `python3`, `bash` | `tecjustica-parse`, `tecjustica-docx` | Ja vem no Linux/WSL |
 | Google Chrome | `pje-download`, `cjf-jurisprudencia` | Secao 1.3 |
 | `browser-use` CLI | `pje-download`, `cjf-jurisprudencia` | Secao 1.4 |
+| LibreOffice headless | `tecjustica-docx` (conversao DOCX -> PDF) | Secao 1.5 |
+| `python-docx` | `tecjustica-docx` (geracao de DOCX) | Secao 1.6 |
 | Chave API MCP (`mcp_...`) | MCP TecJustica | Secao 2.1 |
 | Chave API Parse (`tjp_...`) | `tecjustica-parse` | Secao 2.2 (opcional) |
 | Credenciais PJE TJCE | `pje-download` | Voce ja deve ter como magistrado/servidor/advogado |
@@ -129,8 +131,10 @@ O script cobre:
 2. Instala Node.js 18+
 3. Instala Google Chrome
 4. Instala `browser-use` CLI
-5. Verifica se Claude Code esta instalado (avisa se faltar)
-6. Pede as duas chaves de API (MCP Lite e Parse) e escreve no `~/.bashrc`
+5. Instala LibreOffice headless (para `tecjustica-docx` converter DOCX -> PDF)
+6. Instala `python-docx` via pip (para `tecjustica-docx` gerar DOCX)
+7. Verifica se Claude Code esta instalado (avisa se faltar)
+8. Pede as duas chaves de API (MCP Lite e Parse) e escreve no `~/.bashrc`
 
 **Flags uteis:**
 
@@ -141,6 +145,8 @@ O script cobre:
 | `--skip-node` | Nao instala Node.js |
 | `--skip-chrome` | Nao instala Chrome |
 | `--skip-browser-use` | Nao instala browser-use |
+| `--skip-libreoffice` | Nao instala LibreOffice (tecjustica-docx nao conseguira gerar PDF) |
+| `--skip-python-docx` | Nao instala python-docx (tecjustica-docx nao conseguira gerar DOCX) |
 | `--skip-env` | Nao mexe no `~/.bashrc` |
 
 Depois do script terminar, **abra um novo terminal** para as variaveis serem carregadas e siga direto para o [Passo 4 — Instalar o plugin](#passo-4--instalar-o-plugin-o-mcp-vem-junto).
@@ -209,6 +215,36 @@ browser-use doctor
 ```
 
 A saida do `browser-use doctor` deve indicar que Python, dependencias e o binario Chromium/Chrome estao OK. Se algo aparecer como faltando, siga a orientacao do proprio comando.
+
+### 1.5 LibreOffice headless (necessario para `tecjustica-docx` gerar PDF)
+
+A skill `tecjustica-docx` cria relatorios processuais profissionais em DOCX e converte para PDF via LibreOffice headless. Sem o LibreOffice, a skill ainda gera o DOCX, mas a conversao PDF falha.
+
+```bash
+sudo apt install -y libreoffice-core libreoffice-writer --no-install-recommends
+
+# Confirmar
+libreoffice --version
+```
+
+O pacote `--no-install-recommends` evita puxar dezenas de MB extras (Calc, Impress, Draw, Base, temas) que nao sao usados. So precisamos do Writer para renderizar o DOCX e exportar PDF.
+
+> **Fidelidade de fontes:** o LibreOffice substitui automaticamente fontes que nao estao instaladas. Para relatorios identicos aos gerados no Word, instale tambem as fontes Microsoft core:
+> ```bash
+> sudo apt install -y ttf-mscorefonts-installer fonts-crosextra-carlito
+> ```
+
+### 1.6 `python-docx` (necessario para `tecjustica-docx` gerar DOCX)
+
+```bash
+# Ubuntu 24+ exige --break-system-packages devido ao PEP 668
+pip install --user --break-system-packages python-docx
+
+# Confirmar
+python3 -c "import docx; print(docx.__version__)"
+```
+
+A biblioteca `python-docx` tem cerca de 1 MB e nao puxa dependencias pesadas. Ela e usada pelo `docx_builder.py` da skill `tecjustica-docx` para montar DOCX programaticamente com capa, sumario, tabelas estilizadas, timeline processual, quotes de jurisprudencia, data cards e callouts na paleta visual do TecJustica.
 
 ---
 
@@ -369,7 +405,7 @@ Isso baixa e habilita o plugin globalmente. Em um unico comando, voce ganha:
 | O que e instalado | Como e carregado |
 |-------------------|------------------|
 | `.mcp.json` → servidor MCP TecJustica Lite | Claude registra automaticamente, chama `npx mcp-remote` em background, autentica com `TECJUSTICA_API_KEY` |
-| 6 skills (`tecjustica-mcp-lite`, `analise-processo-civil`, `analise-processo-penal`, `tecjustica-parse`, `pje-download`, `cjf-jurisprudencia`) | Carregadas como skills **model-invoked** — o Claude ativa a relevante quando o contexto bate |
+| 7 skills (`tecjustica-mcp-lite`, `analise-processo-civil`, `analise-processo-penal`, `tecjustica-parse`, `pje-download`, `cjf-jurisprudencia`, `tecjustica-docx`) | Carregadas como skills **model-invoked** — o Claude ativa a relevante quando o contexto bate |
 | Script bundled `scripts/parse.sh` (TecJustica Parse) | Referenciado via `${CLAUDE_SKILL_DIR}` (variavel expandida pelo Claude Code) |
 | Script bundled `scripts/baixar_autos_pje.sh` (PJE Download) | Idem |
 
@@ -421,7 +457,7 @@ Se aparecer `failed` ou ficar em `connecting` indefinidamente, consulte [Trouble
 /help
 ```
 
-Voce deve ver as 6 skills listadas sob o namespace do plugin. Elas sao **model-invoked**, ou seja, o Claude ativa automaticamente a skill correta quando voce faz um pedido que bate com a descricao — voce nao precisa digitar `/tecjustica:analise-processo-civil` manualmente.
+Voce deve ver as 7 skills listadas sob o namespace do plugin. Elas sao **model-invoked**, ou seja, o Claude ativa automaticamente a skill correta quando voce faz um pedido que bate com a descricao — voce nao precisa digitar `/tecjustica:analise-processo-civil` manualmente.
 
 ### 5.4 Teste rapido
 
@@ -471,6 +507,10 @@ Automatiza o download de autos (PDFs) de processos do PJE TJCE 1o Grau usando `b
 ### `cjf-jurisprudencia` — Pesquisa unificada de jurisprudencia
 
 Busca jurisprudencia unificada no Conselho da Justica Federal (STF, STJ, TRF1-5, TNU) via `browser-use` CLI em modo `--headed` (o WAF do CJF bloqueia headless). Suporta operadores logicos (`e`, `ou`, `nao`, `adj`, `prox`, `mesmo`, `com`, `$`) para pesquisa avancada.
+
+### `tecjustica-docx` — Relatorios processuais profissionais em DOCX e PDF
+
+Gera relatorios processuais com identidade visual TecJustica (paleta indigo `#4F46E5` + acento laranja `#FF6719`, tipografia Georgia para headings + Calibri para corpo). Suporta capa, sumario automatico, headings com divisor, data cards (grid de metadados-chave), tabelas estilizadas com cabecalho indigo, timeline processual, quotes de jurisprudencia com borda lateral, callouts (info/warn/ok), blocos de codigo e assinatura formal. Converte automaticamente para PDF via LibreOffice headless. Ideal para consolidar o resultado de `analise-processo-civil`/`-penal` em documento formal para compartilhar com magistrados ou juntar aos autos. Exige `python-docx` e `libreoffice` (ambos instalados pelo `install.sh`).
 
 ---
 

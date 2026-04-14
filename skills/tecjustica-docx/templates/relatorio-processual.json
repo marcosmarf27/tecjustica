@@ -1,0 +1,135 @@
+{
+  "meta": {
+    "titulo": "Relatório Processual",
+    "subtitulo": "Análise técnica assistida por IA",
+    "autor": "TecJustica · Assessoria Judicial",
+    "data": "14 de abril de 2026",
+    "cnj": "0001234-56.2024.8.06.0001",
+    "orgao": "TecJustica · Assessoria Judicial com IA"
+  },
+  "cover": true,
+  "toc": true,
+  "sections": [
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "Sumário executivo"
+    },
+    {
+      "type": "lead",
+      "text": "Análise técnica do processo, elaborada a partir dos autos extraídos via OCR TecJustica Parse e consultada no DataLake PDPJ via MCP Lite."
+    },
+    {
+      "type": "paragraph",
+      "text": "Trata-se de ação de cobrança em fase de cumprimento de sentença. A parte autora pleiteia o recebimento de quantia certa, fundamentada em contrato de prestação de serviços. Este relatório consolida os dados extraídos das peças processuais, a cronologia dos atos, os prazos pendentes e os precedentes aplicáveis."
+    },
+    {
+      "type": "data_cards",
+      "columns": 2,
+      "items": [
+        ["CNJ", "0001234-56.2024.8.06.0001"],
+        ["Classe", "Cumprimento de sentença"],
+        ["Valor da causa", "R$ 125.430,00"],
+        ["Fase atual", "Cumprimento"],
+        ["Distribuído em", "15/03/2024"],
+        ["Última movimentação", "02/04/2026"]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "Partes e representação"
+    },
+    {
+      "type": "table",
+      "headers": ["Qualificação", "Nome", "Representação"],
+      "rows": [
+        ["Exequente", "Construtora Exemplo Ltda.", "Adv. João da Silva · OAB/CE 00000"],
+        ["Executado", "Empresa Fictícia S.A.", "Adv. Maria Souza · OAB/CE 00000"],
+        ["Terceiro", "Banco Exemplo S.A.", "Adv. Pedro Lima · OAB/CE 00000"]
+      ],
+      "col_widths_cm": [4.0, 6.5, 5.5]
+    },
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "Linha do tempo processual"
+    },
+    {
+      "type": "paragraph",
+      "text": "A cronologia abaixo foi reconstruída a partir dos movimentos processuais registrados no PJE e conferida com as peças relevantes dos autos."
+    },
+    {
+      "type": "timeline",
+      "events": [
+        ["15/03/2024", "Distribuição da ação de cobrança à Vara Cível"],
+        ["02/04/2024", "Despacho inicial determinando citação por mandado"],
+        ["18/04/2024", "Citação do executado (AR positivo)"],
+        ["30/05/2024", "Apresentação de contestação"],
+        ["12/08/2024", "Audiência de conciliação · infrutífera"],
+        ["10/11/2024", "Sentença de procedência parcial"],
+        ["20/12/2024", "Trânsito em julgado"],
+        ["15/01/2025", "Requerimento de cumprimento de sentença"],
+        ["02/04/2026", "Intimação para pagamento (art. 523 CPC)"]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "Prazos e providências"
+    },
+    {
+      "type": "bullets",
+      "items": [
+        "Prazo de 15 dias úteis para pagamento voluntário (art. 523 CPC) em curso, iniciado em 03/04/2026",
+        "Transcorrido o prazo sem pagamento, incidência de multa de 10% e honorários de 10%",
+        "Possibilidade de penhora online via SISBAJUD após decurso do prazo",
+        "Monitorar eventual impugnação ao cumprimento de sentença (art. 525 CPC)"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "warn",
+      "text": "Atenção: o prazo para pagamento voluntário termina em 24/04/2026 (15 dias úteis). A ausência de pagamento enseja a incidência automática da multa prevista no art. 523, §1º do CPC."
+    },
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "Fundamentação jurídica"
+    },
+    {
+      "type": "paragraph",
+      "text": "A prescrição intercorrente no cumprimento de sentença passou por relevante alteração jurisprudencial, consolidando-se no entendimento de que o prazo começa a correr a partir da ciência inequívoca do credor acerca da ausência de bens penhoráveis."
+    },
+    {
+      "type": "quote",
+      "text": "A prescrição intercorrente no cumprimento de sentença começa a correr a partir da ciência inequívoca do credor acerca da ausência de bens penhoráveis, observado o prazo do título executivo.",
+      "author": "STJ · REsp 1.340.553/RS · Rel. Min. Mauro Campbell"
+    },
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "Próximos passos sugeridos"
+    },
+    {
+      "type": "bullets",
+      "items": [
+        "Aguardar o decurso do prazo de 15 dias úteis para pagamento voluntário",
+        "Após o prazo, solicitar penhora online via SISBAJUD se não houver pagamento",
+        "Analisar eventual impugnação nos termos do art. 525 do CPC",
+        "Elaborar minuta de decisão interlocutória sobre futuras alegações de impenhorabilidade"
+      ]
+    },
+    {
+      "type": "callout",
+      "kind": "info",
+      "text": "Este relatório foi gerado automaticamente pela skill tecjustica-docx, baseada em python-docx com conversão para PDF via LibreOffice headless. Revise sempre o conteúdo antes de utilizar em decisão formal."
+    },
+    {
+      "type": "signature",
+      "name": "Magistrado(a)",
+      "role": "Juiz(a) de Direito",
+      "local_data": "Fortaleza/CE, 14 de abril de 2026"
+    }
+  ]
+}

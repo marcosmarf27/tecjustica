@@ -9,6 +9,8 @@
 #   - Node.js 18+ (para npx mcp-remote)
 #   - Google Chrome (para pje-download / cjf-jurisprudencia)
 #   - browser-use CLI (para pje-download / cjf-jurisprudencia)
+#   - LibreOffice headless (para tecjustica-docx converter DOCX -> PDF)
+#   - python-docx (para tecjustica-docx gerar DOCX)
 #   - Variaveis de ambiente TECJUSTICA_API_KEY e TECJUSTICA_PARSE_API_KEY
 #
 # O que NAO instala (por design):
@@ -28,6 +30,8 @@
 #   --skip-node           Nao instala Node.js
 #   --skip-chrome         Nao instala Google Chrome
 #   --skip-browser-use    Nao instala browser-use CLI
+#   --skip-libreoffice    Nao instala LibreOffice (necessario para tecjustica-docx)
+#   --skip-python-docx    Nao instala python-docx (necessario para tecjustica-docx)
 #   --skip-env            Nao configura variaveis no ~/.bashrc
 #   -h, --help            Mostra esta ajuda
 # ==============================================================================
@@ -63,6 +67,8 @@ SKIP_INTERACTIVE=0
 SKIP_NODE=0
 SKIP_CHROME=0
 SKIP_BROWSER_USE=0
+SKIP_LIBREOFFICE=0
+SKIP_PYTHON_DOCX=0
 SKIP_ENV=0
 
 usage() {
@@ -76,6 +82,8 @@ while [[ $# -gt 0 ]]; do
     --skip-node)        SKIP_NODE=1; shift ;;
     --skip-chrome)      SKIP_CHROME=1; shift ;;
     --skip-browser-use) SKIP_BROWSER_USE=1; shift ;;
+    --skip-libreoffice) SKIP_LIBREOFFICE=1; shift ;;
+    --skip-python-docx) SKIP_PYTHON_DOCX=1; shift ;;
     --skip-env)         SKIP_ENV=1; shift ;;
     -h|--help)          usage; exit 0 ;;
     *) error "Opcao desconhecida: $1"; usage; exit 1 ;;
@@ -271,9 +279,95 @@ else
 fi
 
 # -----------------------------------------------------------------------------
-# 4. Checar Claude Code (nao instala — so avisa)
+# 4. Checar / instalar LibreOffice (para tecjustica-docx)
 # -----------------------------------------------------------------------------
-step "4. Claude Code"
+install_libreoffice() {
+  if [[ "$CHECK_ONLY" == "1" ]]; then return 0; fi
+  case "$PKG_MANAGER" in
+    apt)
+      info "Instalando LibreOffice headless (core + writer)..."
+      sudo apt-get install -y libreoffice-core libreoffice-writer --no-install-recommends
+      ;;
+    dnf)
+      info "Instalando LibreOffice via dnf..."
+      sudo dnf install -y libreoffice-core libreoffice-writer
+      ;;
+    brew)
+      info "Instalando LibreOffice via brew cask..."
+      brew install --cask libreoffice
+      ;;
+    *)
+      error "Instale LibreOffice manualmente (https://www.libreoffice.org/download/)."
+      return 1
+      ;;
+  esac
+}
+
+check_libreoffice() {
+  command -v libreoffice >/dev/null 2>&1 || command -v soffice >/dev/null 2>&1
+}
+
+step "4. LibreOffice headless"
+if [[ "$SKIP_LIBREOFFICE" == "1" ]]; then
+  warn "Pulando instalacao do LibreOffice (--skip-libreoffice)"
+elif check_libreoffice; then
+  ok "LibreOffice ja instalado ($(libreoffice --version 2>/dev/null | head -1 || echo presente))"
+else
+  if [[ "$CHECK_ONLY" == "1" ]]; then
+    warn "LibreOffice nao instalado — tecjustica-docx nao conseguira gerar PDF"
+  else
+    install_libreoffice
+    if check_libreoffice; then
+      ok "LibreOffice instalado com sucesso."
+    else
+      warn "LibreOffice nao detectado apos instalacao."
+    fi
+  fi
+fi
+
+# -----------------------------------------------------------------------------
+# 5. Checar / instalar python-docx (para tecjustica-docx)
+# -----------------------------------------------------------------------------
+install_python_docx() {
+  if [[ "$CHECK_ONLY" == "1" ]]; then return 0; fi
+  if ! command -v python3 >/dev/null 2>&1; then
+    error "python3 nao encontrado — instale-o antes (geralmente ja vem no Linux)."
+    return 1
+  fi
+  info "Instalando python-docx via pip..."
+  if pip3 install --user python-docx 2>/dev/null; then
+    return 0
+  fi
+  warn "pip recusou a instalacao (PEP 668). Tentando --break-system-packages..."
+  pip3 install --user --break-system-packages python-docx
+}
+
+check_python_docx() {
+  python3 -c "import docx" 2>/dev/null
+}
+
+step "5. python-docx (skill tecjustica-docx)"
+if [[ "$SKIP_PYTHON_DOCX" == "1" ]]; then
+  warn "Pulando instalacao do python-docx (--skip-python-docx)"
+elif check_python_docx; then
+  ok "python-docx ja instalado."
+else
+  if [[ "$CHECK_ONLY" == "1" ]]; then
+    warn "python-docx nao instalado — tecjustica-docx nao conseguira gerar DOCX"
+  else
+    install_python_docx || warn "Falha ao instalar python-docx."
+    if check_python_docx; then
+      ok "python-docx instalado com sucesso."
+    else
+      warn "python-docx nao detectado apos instalacao."
+    fi
+  fi
+fi
+
+# -----------------------------------------------------------------------------
+# 6. Checar Claude Code (nao instala — so avisa)
+# -----------------------------------------------------------------------------
+step "6. Claude Code"
 if command -v claude >/dev/null 2>&1; then
   ok "Claude Code $(claude --version 2>/dev/null || echo instalado)"
 else
@@ -282,7 +376,7 @@ else
 fi
 
 # -----------------------------------------------------------------------------
-# 5. Configurar variaveis de ambiente
+# 7. Configurar variaveis de ambiente
 # -----------------------------------------------------------------------------
 SHELL_RC="$HOME/.bashrc"
 if [[ -n "${ZSH_VERSION:-}" ]] || [[ "${SHELL:-}" == */zsh ]]; then
@@ -340,7 +434,7 @@ write_env_block() {
   ok "Bloco TecJustica escrito em $SHELL_RC"
 }
 
-step "5. Variaveis de ambiente (${SHELL_RC/$HOME/~})"
+step "7. Variaveis de ambiente (${SHELL_RC/$HOME/~})"
 
 if [[ "$SKIP_ENV" == "1" ]]; then
   warn "Pulando configuracao de variaveis (--skip-env)"
@@ -390,7 +484,7 @@ MSG
 fi
 
 # -----------------------------------------------------------------------------
-# 6. Verificacao final
+# 8. Verificacao final
 # -----------------------------------------------------------------------------
 step "Resumo"
 
@@ -406,6 +500,8 @@ verify() {
 verify "Node.js 18+"              "check_node"
 verify "Google Chrome"            "check_chrome"
 verify "browser-use CLI"          "check_browser_use"
+verify "LibreOffice headless"     "check_libreoffice"
+verify "python-docx"              "check_python_docx"
 verify "Claude Code (claude)"     "command -v claude"
 
 # Recarregar $SHELL_RC numa subshell so para o resumo final
@@ -426,7 +522,7 @@ else
 fi
 
 # -----------------------------------------------------------------------------
-# 7. Proximos passos
+# 9. Proximos passos
 # -----------------------------------------------------------------------------
 cat <<DONE
 
