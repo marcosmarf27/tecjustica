@@ -1,13 +1,9 @@
 {
   "mcpServers": {
     "tecjustica": {
-      "command": "npx",
+      "command": "bash",
       "args": [
-        "-y",
-        "mcp-remote",
-        "https://tecjusticamcp-lite-production.up.railway.app/mcp",
-        "--header",
-        "Authorization: Bearer ${TECJUSTICA_API_KEY}"
+        "${CLAUDE_PLUGIN_ROOT}/scripts/start-mcp.sh"
       ]
     }
   }
