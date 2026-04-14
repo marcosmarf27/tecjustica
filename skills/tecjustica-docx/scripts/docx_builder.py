@@ -98,8 +98,8 @@ HEX_WHITE = "FFFFFF"
 HEX_ROW_ALT = "FBF8F0"
 HEX_CODE_BG = "F4EFE2"
 
-FONT_DISPLAY = "EB Garamond"
-FONT_BODY = "EB Garamond"
+FONT_DISPLAY = "Caladea"
+FONT_BODY = "EB Garamond 12"
 FONT_SANS = "IBM Plex Sans"
 FONT_MONO = "IBM Plex Mono"
 
@@ -145,6 +145,41 @@ def _set_cell_borders(
     tc_pr.append(borders)
 
 
+def _set_table_width(table, width_cm: float) -> None:
+    """Define a largura total da tabela em centímetros (OOXML w:tblW)."""
+    tbl_pr = table._tbl.tblPr
+    existing = tbl_pr.find(qn("w:tblW"))
+    if existing is not None:
+        tbl_pr.remove(existing)
+    tbl_w = OxmlElement("w:tblW")
+    tbl_w.set(qn("w:w"), str(int(width_cm * 567)))
+    tbl_w.set(qn("w:type"), "dxa")
+    tbl_pr.append(tbl_w)
+
+
+def _set_table_indent(table, left_cm: float = 0) -> None:
+    """Remove a indentação default da tabela (OOXML w:tblInd)."""
+    tbl_pr = table._tbl.tblPr
+    existing = tbl_pr.find(qn("w:tblInd"))
+    if existing is not None:
+        tbl_pr.remove(existing)
+    tbl_ind = OxmlElement("w:tblInd")
+    tbl_ind.set(qn("w:w"), str(int(left_cm * 567)))
+    tbl_ind.set(qn("w:type"), "dxa")
+    tbl_pr.append(tbl_ind)
+
+
+def _set_row_height(row, height_cm: float, rule: str = "exact") -> None:
+    tr_pr = row._tr.get_or_add_trPr()
+    existing = tr_pr.find(qn("w:trHeight"))
+    if existing is not None:
+        tr_pr.remove(existing)
+    height = OxmlElement("w:trHeight")
+    height.set(qn("w:val"), str(int(height_cm * 567)))  # 567 twips per cm
+    height.set(qn("w:hRule"), rule)
+    tr_pr.append(height)
+
+
 def _set_cell_margins(cell: _Cell, top: int = 100, bottom: int = 100, left: int = 140, right: int = 140) -> None:
     tc_pr = cell._tc.get_or_add_tcPr()
     tc_mar = OxmlElement("w:tcMar")
@@ -169,6 +204,17 @@ def _add_left_border(paragraph, color: str, size: int = 24) -> None:
 
 
 def _tracking(run, value: int) -> None:
+    """Character spacing em twentieths of a point (OOXML w:spacing).
+
+    Valores razoáveis:
+        0       texto normal (não mexer)
+        20      labels pequenos em caps (1pt de extra)
+        40      títulos display em caps (2pt)
+        60      eyebrows bem respirados (3pt)
+        80      nome rotacionado em barra lateral (4pt)
+
+    Valores acima de 80 geram espaços absurdos entre letras.
+    """
     r_pr = run._r.get_or_add_rPr()
     existing = r_pr.find(qn("w:spacing"))
     if existing is not None:
@@ -265,26 +311,43 @@ class Report:
         normal.paragraph_format.line_spacing = 1.35
 
     def _configure_page(self) -> None:
+        # A seção inicial é usada PELA CAPA: A4, margens zeradas, sem header/footer
+        # O conteúdo após a capa recebe uma nova seção com margens normais
         section = self.doc.sections[0]
-        section.top_margin = Mm(28)
-        section.bottom_margin = Mm(24)
-        section.left_margin = Mm(26)
-        section.right_margin = Mm(32)
+        section.page_width = Cm(21.0)
+        section.page_height = Cm(29.7)
+        section.top_margin = Cm(0)
+        section.bottom_margin = Cm(0)
+        section.left_margin = Cm(0)
+        section.right_margin = Cm(0)
+        section.header_distance = Cm(0)
+        section.footer_distance = Cm(0)
 
     def _configure_header_footer(self) -> None:
+        """Header/footer ficam vazios na seção da capa (sec 0).
+
+        A seção de conteúdo (criada depois da capa via _add_content_section)
+        é que recebe o header/footer institucional completo.
+        """
         section = self.doc.sections[0]
-        section.different_first_page_header_footer = True
+        # Limpar parágrafos default do header/footer para não desenhar nada na capa
+        section.header.paragraphs[0].clear()
+        section.footer.paragraphs[0].clear()
+
+    def _setup_content_section_header_footer(self, section) -> None:
+        """Aplica header e footer institucional a uma seção de conteúdo."""
+        # Desvincular do header/footer herdado da seção anterior (capa)
+        section.header.is_linked_to_previous = False
+        section.footer.is_linked_to_previous = False
 
         header = section.header
         p = header.paragraphs[0]
         p.paragraph_format.space_after = Pt(0)
         tab_stops = p.paragraph_format.tab_stops
         tab_stops.add_tab_stop(Cm(15.5), WD_ALIGN_PARAGRAPH.RIGHT)
-        left = _styled_run(p, "TECJUSTICA", font=FONT_SANS, size=8, color=NAVY, bold=True, tracking=200, uppercase=True)
-        _ = left
+        _styled_run(p, "TECJUSTICA", font=FONT_SANS, size=8, color=NAVY, bold=True, tracking=40, uppercase=True)
         p.add_run("\t")
-        right_label = _styled_run(p, self.classificacao, font=FONT_SANS, size=7, color=MUTED, tracking=120, uppercase=True)
-        _ = right_label
+        _styled_run(p, self.classificacao, font=FONT_SANS, size=7, color=MUTED, tracking=30, uppercase=True)
 
         footer = section.footer
         p = footer.paragraphs[0]
@@ -293,13 +356,12 @@ class Report:
         tab_stops.add_tab_stop(Cm(7.75), WD_ALIGN_PARAGRAPH.CENTER)
         tab_stops.add_tab_stop(Cm(15.5), WD_ALIGN_PARAGRAPH.RIGHT)
 
-        left_run = _styled_run(
+        _styled_run(
             p, self.numero_documento or "TECJUSTICA · ASSESSORIA JUDICIAL",
-            font=FONT_MONO, size=7, color=MUTED, tracking=60, uppercase=True,
+            font=FONT_MONO, size=7, color=MUTED, tracking=20, uppercase=True,
         )
-        _ = left_run
         p.add_run("\t")
-        _styled_run(p, "TECJUSTICA · EDIÇÃO EXECUTIVA", font=FONT_SANS, size=7, color=MUTED, tracking=160, uppercase=True)
+        _styled_run(p, "TECJUSTICA · EDIÇÃO EXECUTIVA", font=FONT_SANS, size=7, color=MUTED, tracking=40, uppercase=True)
         p.add_run("\t")
 
         page_run = p.add_run()
@@ -308,8 +370,7 @@ class Report:
         page_run.font.color.rgb = NAVY
         page_run.bold = True
         _insert_field(page_run, "PAGE")
-        sep = _styled_run(p, " / ", font=FONT_MONO, size=7, color=MUTED)
-        _ = sep
+        _styled_run(p, " / ", font=FONT_MONO, size=7, color=MUTED)
         total_run = p.add_run()
         _set_run_font(total_run, FONT_MONO)
         total_run.font.size = Pt(7)
@@ -317,178 +378,335 @@ class Report:
         total_run.bold = True
         _insert_field(total_run, "NUMPAGES")
 
-    # ---- Cover ----
+    # ---- Cover (Editorial com barra lateral vertical) ----
 
     def add_cover(self) -> None:
-        section = self.doc.sections[0]
-        section.first_page_header.paragraphs[0].clear()
-        section.first_page_footer.paragraphs[0].clear()
+        """Capa editorial estilo Weekly Report Template.
 
-        self._cover_top_band()
-        self._cover_eyebrow_and_id()
-        self._cover_title()
-        self._cover_metadata_grid()
-        self._cover_bottom_band()
-        self._page_break()
+        Comportamento: a primeira seção do documento (section 0) foi
+        configurada em __post_init__ com A4, margens zeradas e header/footer
+        vazios — ideal para a capa sangrada. Depois da capa, criamos uma
+        nova seção de conteúdo com margens normais e header/footer
+        institucional via _add_content_section().
 
-    def _cover_top_band(self) -> None:
-        table = self.doc.add_table(rows=1, cols=2)
+        Antigo comentário sobre barra lateral + eyebrow — mantido apenas
+        para histórico:
+
+        Layout:
+            +-----+------------------------------------+
+            |  B  |  (topo: respiro)                   |
+            |  A  |  eyebrow · número do documento     |
+            |  R  |  ─────────── (filete fino ocre)    |
+            |  R  |                                    |
+            |  A  |  TÍTULO                            |
+            |     |  GIGANTESCO                        |
+            |  V  |  (Caladea 72pt bold)               |
+            |  E  |                                    |
+            |  R  |  Subtítulo em itálico              |
+            |  T  |                                    |
+            |  I  |  ════════════ (filete ocre 2pt)    |
+            |  C  |                                    |
+            |  A  |  (metadata 3x2)                    |
+            |  L  |  AUTOS      CLASSE       VALOR     |
+            |     |  ÓRGÃO      RELATOR      DATA      |
+            |  N  |                                    |
+            |  A  |  ─────────── (filete fino)         |
+            |  V  |  PREPARADO POR                     |
+            |  Y  |  autor                             |
+            +-----+------------------------------------+
+
+        A barra lateral ocupa altura total da página com cor navy sólido
+        e contém texto vertical rotacionado (TECJUSTICA · ASSESSORIA JUDICIAL).
+        """
+        # Limpar qualquer parágrafo vazio que python-docx criou no início
+        body = self.doc.element.body
+        for child in list(body):
+            if child.tag == qn("w:p") and not (child.text or "").strip():
+                has_runs = child.findall(qn("w:r"))
+                if not has_runs:
+                    body.remove(child)
+                break
+
+        self._build_cover_grid()
+
+        # Criar nova seção para o conteúdo (margens normais + header/footer)
+        from docx.enum.section import WD_SECTION
+        new_section = self.doc.add_section(WD_SECTION.NEW_PAGE)
+        new_section.page_width = Cm(21.0)
+        new_section.page_height = Cm(29.7)
+        new_section.top_margin = Mm(28)
+        new_section.bottom_margin = Mm(24)
+        new_section.left_margin = Mm(26)
+        new_section.right_margin = Mm(32)
+        new_section.header_distance = Mm(15)
+        new_section.footer_distance = Mm(15)
+        self._setup_content_section_header_footer(new_section)
+
+    def _build_cover_grid(self) -> None:
+        """Capa editorial estilo Weekly Report Template.
+
+        Layout:
+            +----------------------------------------+
+            |                                        |
+            |  EYEBROW · DOC ID                      |
+            |                                        |
+            |  RELATÓRIO DE                          |  bloco creme
+            |  ANÁLISE                               |  (60% altura)
+            |  PROCESSUAL                            |
+            |                                        |
+            |  EDIÇÃO EXECUTIVA                      |
+            |                                        |
+            |  ─── AUTOS                             |
+            |      0001234-56.2024...                |
+            |  ─── CLASSE                            |
+            |      Cumprimento de sentença           |
+            |  ─── VALOR                             |
+            |      R$ 125.430,00                     |
+            |                                        |
+            +========== faixa ocre ==================+
+            |                                        |
+            |  TJ          TECJUSTICA                |
+            |  monograma   Assessoria Judicial       |
+            |              com IA                    |  bloco navy
+            |                                        |  (40% altura)
+            |              PREPARADO POR             |
+            |              autor · data              |
+            +----------------------------------------+
+        """
+        PAGE_W = 21.0
+        CREME_H = 16.8
+        FAIXA_H = 0.6
+        NAVY_H = 11.2
+
+        table = self.doc.add_table(rows=3, cols=1)
         table.autofit = False
-        table.columns[0].width = Cm(10)
-        table.columns[1].width = Cm(6.5)
+        table.columns[0].width = Cm(PAGE_W)
+        _set_table_width(table, PAGE_W)
+        _set_table_indent(table, 0)
 
-        left = table.cell(0, 0)
-        left.width = Cm(10)
-        _set_cell_bg(left, HEX_NAVY_DEEP)
-        _set_cell_margins(left, top=180, bottom=180, left=240, right=120)
-        _set_cell_borders(left)
-        p = left.paragraphs[0]
-        _styled_run(p, "TECJUSTICA", font=FONT_SANS, size=12, color=WHITE, bold=True, tracking=240, uppercase=True)
-        p2 = left.add_paragraph()
-        p2.paragraph_format.space_before = Pt(2)
-        _styled_run(p2, "Assessoria Judicial com IA", font=FONT_BODY, size=9, color=OCRE_LIGHT, italic=True)
+        _set_row_height(table.rows[0], CREME_H, rule="exact")
+        _set_row_height(table.rows[1], FAIXA_H, rule="exact")
+        _set_row_height(table.rows[2], NAVY_H, rule="exact")
 
-        right = table.cell(0, 1)
-        right.width = Cm(6.5)
-        _set_cell_bg(right, HEX_OCRE)
-        _set_cell_margins(right, top=180, bottom=180, left=140, right=240)
-        _set_cell_borders(right)
-        p = right.paragraphs[0]
-        p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        _styled_run(p, self.classificacao, font=FONT_SANS, size=9, color=NAVY_DEEP, bold=True, tracking=200, uppercase=True)
-        p2 = right.add_paragraph()
-        p2.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        p2.paragraph_format.space_before = Pt(2)
-        _styled_run(p2, "circulação restrita", font=FONT_BODY, size=8, color=NAVY_DEEP, italic=True)
+        # ============================================================
+        # BLOCO 1: topo creme com título editorial
+        # ============================================================
+        top = table.cell(0, 0)
+        top.width = Cm(PAGE_W)
+        _set_cell_bg(top, HEX_CREAM)
+        _set_cell_margins(top, top=800, bottom=400, left=900, right=900)
+        _set_cell_borders(top)
+        top.vertical_alignment = WD_ALIGN_VERTICAL.TOP
+        self._build_cover_top(top)
 
-        self._vertical_space(Pt(18))
+        # ============================================================
+        # BLOCO 2: faixa horizontal ocre sólida (separador visual)
+        # ============================================================
+        faixa = table.cell(1, 0)
+        faixa.width = Cm(PAGE_W)
+        _set_cell_bg(faixa, HEX_OCRE)
+        _set_cell_margins(faixa, top=0, bottom=0, left=0, right=0)
+        _set_cell_borders(faixa)
+        p = faixa.paragraphs[0]
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(0)
+        run = p.add_run("")
+        run.font.size = Pt(1)
 
-    def _cover_eyebrow_and_id(self) -> None:
-        p = self.doc.add_paragraph()
-        p.paragraph_format.space_after = Pt(2)
-        _styled_run(p, self.eyebrow, font=FONT_SANS, size=9, color=OCRE, bold=True, tracking=400, uppercase=True)
+        # ============================================================
+        # BLOCO 3: base navy com monograma e institucional
+        # ============================================================
+        bottom = table.cell(2, 0)
+        bottom.width = Cm(PAGE_W)
+        _set_cell_bg(bottom, HEX_NAVY_DEEP)
+        _set_cell_margins(bottom, top=500, bottom=500, left=900, right=900)
+        _set_cell_borders(bottom)
+        bottom.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+        self._build_cover_bottom(bottom)
+
+    def _build_cover_top(self, cell: _Cell) -> None:
+        """Monta o conteúdo do bloco creme superior da capa."""
+        # 1. Eyebrow + document ID
+        first = cell.paragraphs[0]
+        first.paragraph_format.space_before = Pt(0)
+        first.paragraph_format.space_after = Pt(0)
+        eyebrow_text = self.eyebrow
         if self.numero_documento:
-            p.add_run("   ")
-            _styled_run(p, "·", font=FONT_SANS, size=9, color=MUTED)
-            p.add_run("   ")
-            _styled_run(p, self.numero_documento, font=FONT_MONO, size=9, color=NAVY, tracking=80, uppercase=True)
+            eyebrow_text = f"{self.eyebrow}   ·   {self.numero_documento}"
+        _styled_run(
+            first, eyebrow_text, font=FONT_SANS, size=8,
+            color=OCRE, bold=True, tracking=60, uppercase=True,
+        )
 
-        self._hairline(width_cm=16.5)
+        # 2. Espaço antes do título
+        spacer = cell.add_paragraph()
+        spacer.paragraph_format.space_before = Pt(18)
+        spacer.paragraph_format.space_after = Pt(0)
+        spacer.add_run("").font.size = Pt(1)
 
-    def _cover_title(self) -> None:
-        self._vertical_space(Pt(18))
-
-        title_lines = self._smart_split_title(self.titulo)
+        # 3. Título gigantesco em caps (56pt Caladea bold)
+        title_lines = self._smart_split_title(self.titulo.upper())
         for line in title_lines:
-            p = self.doc.add_paragraph()
-            p.paragraph_format.space_after = Pt(2)
-            p.paragraph_format.line_spacing = 1.05
-            _styled_run(p, line, font=FONT_DISPLAY, size=42, color=NAVY_DEEP, bold=True)
+            tp = cell.add_paragraph()
+            tp.paragraph_format.space_after = Pt(0)
+            tp.paragraph_format.line_spacing = 0.95
+            _styled_run(
+                tp, line, font=FONT_DISPLAY, size=52,
+                color=NAVY_DEEP, bold=True, tracking=20,
+            )
 
-        if self.subtitulo:
-            p = self.doc.add_paragraph()
-            p.paragraph_format.space_before = Pt(10)
-            p.paragraph_format.space_after = Pt(4)
-            _styled_run(p, self.subtitulo, font=FONT_DISPLAY, size=16, color=BODY, italic=True)
+        # 4. Subtítulo estilo "TEMPLATE"
+        sub_p = cell.add_paragraph()
+        sub_p.paragraph_format.space_before = Pt(10)
+        sub_p.paragraph_format.space_after = Pt(0)
+        subtitle_upper = (self.subtitulo or "EDIÇÃO EXECUTIVA").upper()
+        if len(subtitle_upper) > 40:
+            subtitle_upper = "EDIÇÃO EXECUTIVA"
+        _styled_run(
+            sub_p, subtitle_upper, font=FONT_SANS, size=11,
+            color=MUTED, bold=True, tracking=50,
+        )
 
-        self._vertical_space(Pt(22))
-        self._hairline(width_cm=16.5)
-        self._vertical_space(Pt(6))
+        # 5. Metadata em linhas horizontais (label + valor)
+        if self.metadata:
+            meta_spacer = cell.add_paragraph()
+            meta_spacer.paragraph_format.space_before = Pt(24)
+            meta_spacer.paragraph_format.space_after = Pt(0)
+            meta_spacer.add_run("").font.size = Pt(1)
+            self._cover_metadata_rows(cell, self.metadata[:4])
 
-    @staticmethod
-    def _smart_split_title(title: str) -> list[str]:
-        words = title.split()
-        if len(words) <= 3:
-            return [title]
-        mid = len(words) // 2
-        for offset in range(3):
-            idx = mid + offset
-            if 0 < idx < len(words) and words[idx - 1][-1] not in ".,;:":
-                return [" ".join(words[:idx]), " ".join(words[idx:])]
-        return [title]
-
-    def _cover_metadata_grid(self) -> None:
-        if not self.metadata:
-            return
-        items = list(self.metadata)
-        cols = min(len(items), 3)
-        rows = (len(items) + cols - 1) // cols
-        table = self.doc.add_table(rows=rows, cols=cols)
-        table.autofit = False
-        col_w = Cm(16.5 / cols)
-        for col in table.columns:
-            col.width = col_w
-
+    def _cover_metadata_rows(self, parent_cell: _Cell, items: Sequence[tuple[str, str]]) -> None:
+        """Linhas horizontais de metadata estilo ficha técnica."""
         for idx, (label, value) in enumerate(items):
-            r, c = divmod(idx, cols)
-            cell = table.rows[r].cells[c]
-            cell.width = col_w
-            _set_cell_bg(cell, HEX_CREAM)
-            _set_cell_margins(cell, top=200, bottom=180, left=200, right=160)
-            is_last_row = r == rows - 1
-            is_last_col = c == cols - 1
-            _set_cell_borders(
-                cell,
-                top=(HEX_HAIRLINE, 6),
-                bottom=(HEX_HAIRLINE, 6) if not is_last_row else (HEX_OCRE, 8),
-                left=None,
-                right=None if is_last_col else (HEX_HAIRLINE, 4),
-            )
+            line_p = parent_cell.add_paragraph()
+            line_p.paragraph_format.space_before = Pt(6) if idx > 0 else Pt(0)
+            line_p.paragraph_format.space_after = Pt(0)
+            self._paragraph_bottom_border(line_p, color=HEX_HAIRLINE, size=6)
 
-            label_p = cell.paragraphs[0]
-            label_p.paragraph_format.space_after = Pt(4)
             _styled_run(
-                label_p, label, font=FONT_SANS, size=7,
-                color=MUTED, bold=True, tracking=240, uppercase=True,
+                line_p, label.upper(), font=FONT_SANS, size=8,
+                color=MUTED, bold=True, tracking=50,
             )
-
-            value_p = cell.add_paragraph()
-            value_p.paragraph_format.space_after = Pt(2)
-            is_mono = any(ch.isdigit() for ch in value) and any(ch in value for ch in ".-/")
+            line_p.add_run("    ")
+            is_mono = any(ch.isdigit() for ch in value) and any(
+                ch in value for ch in ".-/R$"
+            )
             _styled_run(
-                value_p, value,
+                line_p, value,
                 font=FONT_MONO if is_mono and len(value) <= 35 else FONT_DISPLAY,
                 size=11 if is_mono else 13,
                 color=NAVY_DEEP, bold=not is_mono,
             )
 
-        self._vertical_space(Pt(24))
+    def _build_cover_bottom(self, cell: _Cell) -> None:
+        """Bloco navy inferior: monograma + texto institucional."""
+        # Tabela 1x2: monograma à esquerda + textos à direita
+        inner = cell.add_table(rows=1, cols=2)
+        inner.autofit = False
+        inner.columns[0].width = Cm(5.5)
+        inner.columns[1].width = Cm(12.0)
 
-    def _cover_bottom_band(self) -> None:
-        self._vertical_space(Pt(30))
+        # --- Monograma "TJ" ---
+        mono_cell = inner.cell(0, 0)
+        mono_cell.width = Cm(5.5)
+        _set_cell_margins(mono_cell, top=0, bottom=0, left=0, right=200)
+        _set_cell_borders(mono_cell, right=(HEX_OCRE, 8))
+        mono_cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
 
-        self._hairline(width_cm=16.5)
-        self._vertical_space(Pt(4))
+        mono_p = mono_cell.paragraphs[0]
+        mono_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        mono_p.paragraph_format.space_before = Pt(0)
+        mono_p.paragraph_format.space_after = Pt(0)
+        mono_p.paragraph_format.line_spacing = 1.0
+        _styled_run(
+            mono_p, "TJ", font=FONT_DISPLAY, size=110,
+            color=OCRE_LIGHT, bold=True,
+        )
 
-        table = self.doc.add_table(rows=1, cols=2)
-        table.autofit = False
-        table.columns[0].width = Cm(10.5)
-        table.columns[1].width = Cm(6)
+        # --- Textos institucionais ---
+        text_cell = inner.cell(0, 1)
+        text_cell.width = Cm(12.0)
+        _set_cell_margins(text_cell, top=0, bottom=0, left=400, right=0)
+        _set_cell_borders(text_cell)
+        text_cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
 
-        left = table.cell(0, 0)
-        left.width = Cm(10.5)
-        _set_cell_margins(left, top=40, bottom=40, left=0, right=80)
-        _set_cell_borders(left)
-        p = left.paragraphs[0]
-        _styled_run(p, "PREPARADO POR", font=FONT_SANS, size=7, color=MUTED, bold=True, tracking=240, uppercase=True)
-        p2 = left.add_paragraph()
-        p2.paragraph_format.space_before = Pt(2)
-        _styled_run(p2, self.autor, font=FONT_DISPLAY, size=12, color=NAVY_DEEP, bold=True)
-        p3 = left.add_paragraph()
-        p3.paragraph_format.space_before = Pt(1)
-        _styled_run(p3, "Inovação tecnológica para o Judiciário brasileiro", font=FONT_DISPLAY, size=9, color=MUTED, italic=True)
+        name_p = text_cell.paragraphs[0]
+        name_p.paragraph_format.space_before = Pt(0)
+        name_p.paragraph_format.space_after = Pt(0)
+        _styled_run(
+            name_p, "TECJUSTICA", font=FONT_SANS, size=18,
+            color=WHITE, bold=True, tracking=40,
+        )
 
-        right = table.cell(0, 1)
-        right.width = Cm(6)
-        _set_cell_margins(right, top=40, bottom=40, left=80, right=0)
-        _set_cell_borders(right)
-        p = right.paragraphs[0]
-        p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        _styled_run(p, "Abril", font=FONT_DISPLAY, size=11, color=BODY, italic=True)
-        p2 = right.add_paragraph()
-        p2.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        p2.paragraph_format.space_before = Pt(0)
-        _styled_run(p2, "MMXXVI", font=FONT_DISPLAY, size=24, color=NAVY_DEEP, bold=True)
+        tag_p = text_cell.add_paragraph()
+        tag_p.paragraph_format.space_before = Pt(2)
+        tag_p.paragraph_format.space_after = Pt(0)
+        _styled_run(
+            tag_p, "Assessoria Judicial com Inteligência Artificial",
+            font=FONT_BODY, size=11, color=OCRE_LIGHT, italic=True,
+        )
+
+        # Separador interno
+        sep_p = text_cell.add_paragraph()
+        sep_p.paragraph_format.space_before = Pt(14)
+        sep_p.paragraph_format.space_after = Pt(0)
+        self._paragraph_bottom_border(sep_p, color=HEX_OCRE, size=6)
+        sep_p.add_run("").font.size = Pt(1)
+
+        label_p = text_cell.add_paragraph()
+        label_p.paragraph_format.space_before = Pt(10)
+        label_p.paragraph_format.space_after = Pt(0)
+        _styled_run(
+            label_p, "PREPARADO POR", font=FONT_SANS, size=7,
+            color=OCRE_LIGHT, bold=True, tracking=60,
+        )
+
+        author_p = text_cell.add_paragraph()
+        author_p.paragraph_format.space_before = Pt(2)
+        author_p.paragraph_format.space_after = Pt(0)
+        _styled_run(
+            author_p, self.autor, font=FONT_DISPLAY, size=13,
+            color=WHITE, bold=True,
+        )
+
+        class_p = text_cell.add_paragraph()
+        class_p.paragraph_format.space_before = Pt(6)
+        class_p.paragraph_format.space_after = Pt(0)
+        _styled_run(
+            class_p, self.classificacao, font=FONT_MONO, size=8,
+            color=OCRE_LIGHT, bold=True, tracking=30,
+        )
+
+    @staticmethod
+    def _smart_split_title(title: str) -> list[str]:
+        """Quebra o título em 2-3 linhas buscando respiração semântica."""
+        words = title.split()
+        if len(words) <= 2:
+            return [title]
+        if len(words) == 3:
+            return [words[0], " ".join(words[1:])]
+        # Para títulos de 4+ palavras, tenta dividir próximo ao meio
+        mid = len(words) // 2
+        for offset in range(3):
+            idx = mid + offset
+            if 0 < idx < len(words):
+                return [" ".join(words[:idx]), " ".join(words[idx:])]
+        return [title]
+
+    @staticmethod
+    def _paragraph_bottom_border(paragraph, color: str, size: int = 6) -> None:
+        p_pr = paragraph._p.get_or_add_pPr()
+        existing = p_pr.find(qn("w:pBdr"))
+        if existing is not None:
+            p_pr.remove(existing)
+        p_bdr = OxmlElement("w:pBdr")
+        bottom = OxmlElement("w:bottom")
+        bottom.set(qn("w:val"), "single")
+        bottom.set(qn("w:sz"), str(size))
+        bottom.set(qn("w:space"), "1")
+        bottom.set(qn("w:color"), color)
+        p_bdr.append(bottom)
+        p_pr.append(p_bdr)
 
     # ---- TOC ----
 
@@ -523,7 +741,7 @@ class Report:
         if numeral:
             p = self.doc.add_paragraph()
             p.paragraph_format.space_after = Pt(0)
-            _styled_run(p, numeral, font=FONT_MONO, size=10, color=OCRE, bold=True, tracking=120)
+            _styled_run(p, numeral, font=FONT_MONO, size=10, color=OCRE, bold=True, tracking=30)
 
         p = self.doc.add_heading(level=1)
         p.paragraph_format.space_before = Pt(2)
@@ -552,7 +770,7 @@ class Report:
         p = self.doc.add_heading(level=3)
         p.paragraph_format.space_before = Pt(10)
         p.paragraph_format.space_after = Pt(3)
-        _styled_run(p, text, font=FONT_SANS, size=10, color=NAVY, bold=True, tracking=160, uppercase=True)
+        _styled_run(p, text, font=FONT_SANS, size=10, color=NAVY, bold=True, tracking=40, uppercase=True)
 
     # ---- Paragraphs ----
 
@@ -613,7 +831,7 @@ class Report:
 
         label_p = cell.paragraphs[0]
         label_p.paragraph_format.space_after = Pt(2)
-        _styled_run(label_p, label, font=FONT_SANS, size=8, color=color, bold=True, tracking=240, uppercase=True)
+        _styled_run(label_p, label, font=FONT_SANS, size=8, color=color, bold=True, tracking=50, uppercase=True)
 
         body_p = cell.add_paragraph()
         body_p.paragraph_format.space_after = Pt(0)
@@ -636,7 +854,7 @@ class Report:
             attr_p.paragraph_format.space_before = Pt(2)
             attr_p.paragraph_format.space_after = Pt(8)
             _styled_run(attr_p, "— ", font=FONT_SANS, size=8, color=MUTED, tracking=80)
-            _styled_run(attr_p, author, font=FONT_SANS, size=8, color=MUTED, bold=True, tracking=160, uppercase=True)
+            _styled_run(attr_p, author, font=FONT_SANS, size=8, color=MUTED, bold=True, tracking=40, uppercase=True)
 
         self._vertical_space(Pt(4))
 
@@ -668,7 +886,7 @@ class Report:
 
             label_p = cell.paragraphs[0]
             label_p.paragraph_format.space_after = Pt(4)
-            _styled_run(label_p, label, font=FONT_SANS, size=7, color=MUTED, bold=True, tracking=220, uppercase=True)
+            _styled_run(label_p, label, font=FONT_SANS, size=7, color=MUTED, bold=True, tracking=50, uppercase=True)
 
             value_p = cell.add_paragraph()
             value_p.paragraph_format.space_after = Pt(0)
@@ -719,7 +937,7 @@ class Report:
             p.alignment = WD_ALIGN_PARAGRAPH.LEFT
             p.paragraph_format.space_before = Pt(0)
             p.paragraph_format.space_after = Pt(0)
-            _styled_run(p, text, font=FONT_SANS, size=8, color=NAVY_DEEP, bold=True, tracking=200, uppercase=True)
+            _styled_run(p, text, font=FONT_SANS, size=8, color=NAVY_DEEP, bold=True, tracking=50, uppercase=True)
 
         for r_idx, row in enumerate(rows):
             row_cells = table.rows[r_idx + 1].cells
@@ -812,7 +1030,7 @@ class Report:
 
             label_p = cell.paragraphs[0]
             label_p.paragraph_format.space_after = Pt(4)
-            _styled_run(label_p, label, font=FONT_SANS, size=7, color=MUTED, bold=True, tracking=240, uppercase=True)
+            _styled_run(label_p, label, font=FONT_SANS, size=7, color=MUTED, bold=True, tracking=50, uppercase=True)
 
             value_p = cell.add_paragraph()
             value_p.paragraph_format.space_after = Pt(2)
@@ -849,7 +1067,7 @@ class Report:
             r_p = self.doc.add_paragraph()
             r_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             r_p.paragraph_format.space_before = Pt(0)
-            _styled_run(r_p, role, font=FONT_SANS, size=8, color=MUTED, bold=True, tracking=200, uppercase=True)
+            _styled_run(r_p, role, font=FONT_SANS, size=8, color=MUTED, bold=True, tracking=50, uppercase=True)
 
     # ---- Layout utilities ----
 
