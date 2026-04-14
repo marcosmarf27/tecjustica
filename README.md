@@ -1,8 +1,16 @@
 # Plugin TecJustica para Claude Code
 
+![TecJustica — Plugin para Claude Code](assets/images/hero.jpg)
+
 Assessoria judicial inteligente para processos civeis e penais brasileiros. Analise processual, elaboracao de decisoes, pesquisa de jurisprudencia, download de autos do PJE, OCR de PDFs e calculos de prazos — tudo integrado via skills do Claude Code e o MCP Lite TecJustica (DataLake PDPJ/CNJ).
 
 O plugin reune **6 skills** que trabalham em conjunto para dar ao magistrado, assessor ou advogado um ambiente de trabalho completo dentro do Claude Code.
+
+## Arquitetura
+
+![Arquitetura TecJustica](assets/images/architecture.jpg)
+
+O Claude Code carrega o **plugin TecJustica**, que expoe 6 skills e registra o servidor **MCP TecJustica Lite** via `mcp-remote`. O MCP Lite consome o **DataLake PDPJ** do CNJ e devolve processos, documentos, movimentacoes e precedentes em tempo real. Tudo roda sobre JSON-RPC via HTTP, autenticado com sua chave `mcp_...`.
 
 ## Sumario
 
@@ -288,6 +296,8 @@ Se retornar erro 401, a chave `TECJUSTICA_API_KEY` esta invalida ou nao foi lida
 
 ## Skills incluidas
 
+![Mapa das 6 skills](assets/images/skills-map.jpg)
+
 ### `tecjustica-mcp-lite` — Acesso ao DataLake PDPJ
 
 Skill base que documenta as **12 tools `pdpj_*`** do MCP TecJustica Lite. Pesquisa de processos por CNJ, CPF ou CNPJ, leitura de documentos (peticao inicial, contestacao, sentenca, acordao), linha do tempo, listagem de partes/advogados e busca de precedentes (sumulas, IRDR, repercussao geral, teses) no Banco Nacional de Precedentes. Dispara automaticamente com numeros CNJ ou termos como "processo", "peticao", "sumula".
@@ -383,6 +393,8 @@ Apos instalar o plugin, as skills sao ativadas automaticamente. Basta conversar 
 ---
 
 ## Fluxo completo de teste
+
+![Fluxo end-to-end](assets/images/workflow.jpg)
 
 Ordem recomendada para validar que tudo esta funcionando ponta-a-ponta. Use o processo de exemplo `3000066-83.2025.8.06.0203` (TJCE) ou um seu.
 
