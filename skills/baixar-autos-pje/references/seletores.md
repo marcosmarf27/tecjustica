@@ -1,12 +1,16 @@
-# Seletores e armadilhas do PJE-CE (Consulta Processual)
+# Seletores e armadilhas do PJE (Consulta Processual)
 
 Referência completa dos IDs JSF, seletores estáveis e comportamentos observados em produção. Consulte quando algo no fluxo principal não casar com o que você está vendo.
+
+O conteúdo deste arquivo foi levantado em produção no **TJCE** mas descreve o DOM do PJE unificado (CNJ), que é compartilhado entre tribunais (TJs estaduais, TRFs, TRTs). Os IDs JSF (`fPP:*`) e seletores (`input[value="Download"]`) são os mesmos em qualquer instalação — só a URL base muda.
 
 ## URL de entrada
 
 ```
-https://pje.tjce.jus.br/pje1grau/Processo/ConsultaProcesso/listView.seam
+<PJE_BASE>/Processo/ConsultaProcesso/listView.seam
 ```
+
+Onde `<PJE_BASE>` é a URL base do tribunal escolhido (ex.: `https://pje.tjce.jus.br/pje1grau`, `https://pje1g.trf1.jus.br/pje`, `https://pje.tjrn.jus.br/pje1grau`).
 
 Essa é a página da Consulta Processual. Não há `iframe#ngFrame` nela — o DOM do topo é o DOM real. Isso é **diferente** do painel do usuário (`/ng2/dev.seam`), que roda Angular dentro de iframe e exige `page.frameLocator('#ngFrame')` em ferramentas tipo Playwright.
 
@@ -21,8 +25,8 @@ Formulário JSF `<h:form id="fPP">`. Todos os IDs têm o prefixo `fPP:`.
 | Sequencial               | `fPP:numeroProcesso:numeroSequencial`            | text   | não             | 7         |
 | Dígito verificador       | `fPP:numeroProcesso:numeroDigitoVerificador`     | text   | não             | 2         |
 | Ano                      | `fPP:numeroProcesso:Ano`                         | text   | não             | 4         |
-| Ramo da Justiça          | `fPP:numeroProcesso:ramoJustica`                 | text   | **sim (`8`)**   | 1         |
-| Tribunal                 | `fPP:numeroProcesso:respectivoTribunal`          | text   | **sim (`06`)**  | 2         |
+| Ramo da Justiça          | `fPP:numeroProcesso:ramoJustica`                 | text   | **sim** (valor = ramo do tribunal, ex: `8` no TJCE, `4` no TRF1, `5` no TRT)  | 1 |
+| Tribunal                 | `fPP:numeroProcesso:respectivoTribunal`          | text   | **sim** (valor = código do tribunal, ex: `06` no TJCE, `01` no TRF1) | 2 |
 | Órgão de Justiça         | `fPP:numeroProcesso:NumeroOrgaoJustica`          | text   | não             | 4         |
 
 ### Armadilha #1 — pré-preenchidos duplicam
@@ -95,20 +99,24 @@ Array.from(document.querySelectorAll('input[type="button"], input[type="submit"]
   ?.click();
 ```
 
-## A aba do MinIO
+## A aba do storage (MinIO / S3)
 
-Após o clique de confirm, o PJE abre uma nova aba em:
+Após o clique de confirm, o PJE abre uma nova aba num storage S3-compatible. O host varia por tribunal, mas a assinatura é AWS padrão:
 
 ```
-https://minio-pjedocs.tjce.jus.br/<bucket>/<CNJ>-<epoch>-<id>-processo.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=...&X-Amz-Date=...&X-Amz-Expires=120&X-Amz-SignedHeaders=host&X-Amz-Signature=...
+<STORAGE_HOST>/<bucket>/<CNJ>-<epoch>-<id>-processo.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=...&X-Amz-Date=...&X-Amz-Expires=120&X-Amz-SignedHeaders=host&X-Amz-Signature=...
 ```
+
+Hosts observados:
+- TJCE: `minio-pjedocs.tjce.jus.br`
+- Outros tribunais: nomes similares (`minio.<trib>.jus.br`, `s3-pje.<trib>.jus.br`, `pje-docs.<trib>.jus.br`). Não memorize o domínio — **detecte pela presença do query param `X-Amz-Signature=`**, que é o marcador estável em qualquer MinIO/S3 assinado.
 
 ### Detalhes importantes
 
 - **`X-Amz-Expires=120`** é literalmente 120 segundos. Marcado a partir de `X-Amz-Date` (o timestamp na própria URL). Depois disso, GET retorna `403 SignatureDoesNotMatch`.
 - **`window.location.href` via `javascript_tool`** vem bloqueado como "Cookie/query string data" por segurança do MCP. Use o campo `url` do retorno de `tabs_context_mcp` — ele expõe a URL completa.
 - **Título da aba** é do tipo `"PROCESSO: <CNJ> - <CLASSE JUDICIAL>"`. Pode ser usado como sanity check de que a aba certa foi identificada.
-- O domínio `minio-pjedocs.tjce.jus.br` é um S3-compatible interno do TJCE. Não responde a `OPTIONS`, não aceita range requests em chunks, e não tem fallback público. Sempre baixar com `curl -sS -o` direto.
+- O storage é interno do tribunal, não responde a `OPTIONS`, não aceita range requests em chunks, e não tem fallback público. Sempre baixar com `curl -sS -o` direto.
 
 ## Login / sessão
 
@@ -120,7 +128,7 @@ A skill assume sessão logada. Indicadores de que o usuário está logado:
 
 Indicadores de que **não** está logado:
 
-- Redirecionamento para `auth.tjce.jus.br` ou tela do Keycloak (`#kc-login`).
+- Redirecionamento para um host `auth.<trib>.jus.br` ou tela do Keycloak (`#kc-login`).
 - Tela com o card "Processo Judicial Eletrônico" e botões "Certificado Digital" / "CPF/Senha".
 
 Se não estiver logado, a skill **não** tenta logar. Avise o usuário e pare. Login automatizado precisa de credenciais que não temos e o PJE tem MFA/captcha em alguns cenários.
@@ -129,8 +137,8 @@ Se não estiver logado, a skill **não** tenta logar. Avise o usuário e pare. L
 
 Se um dia for preciso transportar a sessão para outra ferramenta (curl, Playwright headless), estes cookies devem ser copiados:
 
-- `JSESSIONID` do domínio `pje.tjce.jus.br`
-- Cookies do Keycloak do domínio `auth.tjce.jus.br` (`KEYCLOAK_SESSION`, `KC_RESTART`, `AUTH_SESSION_ID`)
+- `JSESSIONID` do domínio do PJE (`pje.<trib>.jus.br`)
+- Cookies do Keycloak do domínio de auth do tribunal (`auth.<trib>.jus.br` — `KEYCLOAK_SESSION`, `KC_RESTART`, `AUTH_SESSION_ID`)
 - Cookie `Pje-Simultaneidade` do PJE (controla bloqueio de sessão duplicada)
 
 Na extensão Claude in Chrome isso não é um problema — você usa a aba onde o usuário já está logado.
@@ -147,4 +155,4 @@ Na extensão Claude in Chrome isso não é um problema — você usa a aba onde 
 | Geração PDF no servidor (processo grande)     | 60–120s         | 180s+ (300+ páginas)   |
 | Download via curl (2–3 MB)                    | 1–2s            | 10s                    |
 
-Use esses números como guia para polling e timeouts. Polling da aba MinIO: 5s de intervalo, 180s de teto total.
+Use esses números como guia para polling e timeouts. Polling da aba de storage: 5s de intervalo, 180s de teto total.
