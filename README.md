@@ -4,7 +4,7 @@
 
 Assessoria judicial inteligente para processos civeis e penais brasileiros. Analise processual, elaboracao de decisoes, pesquisa de jurisprudencia, download de autos do PJE, OCR de PDFs e calculos de prazos — tudo integrado via skills do Claude Code e o MCP Lite TecJustica (DataLake PDPJ/CNJ).
 
-O plugin reune **6 skills** que trabalham em conjunto para dar ao magistrado, assessor ou advogado um ambiente de trabalho completo dentro do Claude Code.
+O plugin reune **8 skills** que trabalham em conjunto para dar ao magistrado, assessor ou advogado um ambiente de trabalho completo dentro do Claude Code.
 
 ## Arquitetura
 
@@ -449,7 +449,7 @@ Isso baixa e habilita o plugin globalmente. Em um unico comando, voce ganha:
 | O que e instalado | Como e carregado |
 |-------------------|------------------|
 | `.mcp.json` → servidor MCP TecJustica Lite | Claude registra automaticamente, chama `npx mcp-remote` em background, autentica com `TECJUSTICA_API_KEY` |
-| 7 skills (`tecjustica-mcp-lite`, `analise-processo-civil`, `analise-processo-penal`, `tecjustica-parse`, `pje-download`, `cjf-jurisprudencia`, `tecjustica-docx`) | Carregadas como skills **model-invoked** — o Claude ativa a relevante quando o contexto bate |
+| 8 skills (`tecjustica-mcp-lite`, `analise-processo-civil`, `analise-processo-penal`, `tecjustica-parse`, `pje-download`, `baixar-autos-pje-ce`, `cjf-jurisprudencia`, `tecjustica-docx`) | Carregadas como skills **model-invoked** — o Claude ativa a relevante quando o contexto bate |
 | Script bundled `scripts/parse.sh` (TecJustica Parse) | Referenciado via `${CLAUDE_SKILL_DIR}` (variavel expandida pelo Claude Code) |
 | Script bundled `scripts/baixar_autos_pje.sh` (PJE Download) | Idem |
 
@@ -501,7 +501,7 @@ Se aparecer `failed` ou ficar em `connecting` indefinidamente, consulte [Trouble
 /help
 ```
 
-Voce deve ver as 7 skills listadas sob o namespace do plugin. Elas sao **model-invoked**, ou seja, o Claude ativa automaticamente a skill correta quando voce faz um pedido que bate com a descricao — voce nao precisa digitar `/tecjustica:analise-processo-civil` manualmente.
+Voce deve ver as 8 skills listadas sob o namespace do plugin. Elas sao **model-invoked**, ou seja, o Claude ativa automaticamente a skill correta quando voce faz um pedido que bate com a descricao — voce nao precisa digitar `/tecjustica:analise-processo-civil` manualmente.
 
 ### 5.4 Teste rapido
 
@@ -520,7 +520,7 @@ Se retornar erro 401, a chave `TECJUSTICA_API_KEY` esta invalida ou nao foi lida
 
 ## Skills incluidas
 
-![Mapa das 6 skills](assets/images/skills-map.jpg)
+![Mapa das 8 skills](assets/images/skills-map.jpg)
 
 ### `tecjustica-mcp-lite` — Acesso ao DataLake PDPJ
 
@@ -547,6 +547,10 @@ Extrai texto de PDFs juridicos (escaneados ou digitais) via API TecJustica Parse
 ### `pje-download` — Baixar autos do PJE TJCE
 
 Automatiza o download de autos (PDFs) de processos do PJE TJCE 1o Grau usando `browser-use` CLI. Na primeira execucao abre o Chrome para login manual (CPF/CNPJ + senha ou certificado digital) e salva cookies em `~/.browser-use/pje_cookies.json` para reutilizacao. Traz script `baixar_autos_pje.sh` bundled com fallback manual documentado em `references/pje-navegacao.md`.
+
+### `baixar-autos-pje-ce` — Baixar autos do PJE-CE via Claude in Chrome
+
+Alternativa a `pje-download` para quem usa o **Claude Code em Co-Work Pro** com a extensao **Claude in Chrome** (Claude Home) ativada. Baixa o PDF consolidado dos autos do PJE TJCE 1o grau diretamente pela aba do Chrome controlada pela extensao — preenche os 6 campos do CNJ na Consulta Processual, dispara a geracao do PDF no servidor, captura a URL assinada do MinIO e salva no workspace folder da sessao. **Nao depende** de `browser-use`, `Node` ou Chrome local: a unica exigencia e ter uma aba PJE ja logada na sessao Chrome controlada pelo Claude. Recomendada para magistrados/assessores que ja trabalham no Cowork e nao querem manter stack separada de automacao.
 
 ### `cjf-jurisprudencia` — Pesquisa unificada de jurisprudencia
 
