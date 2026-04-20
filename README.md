@@ -4,7 +4,7 @@
 
 Assessoria judicial inteligente para processos civeis e penais brasileiros. Analise processual, elaboracao de decisoes, pesquisa de jurisprudencia, download de autos do PJE, OCR de PDFs e calculos de prazos — tudo integrado via skills do Claude Code e o MCP Lite TecJustica (DataLake PDPJ/CNJ).
 
-O plugin reune **8 skills** que trabalham em conjunto para dar ao magistrado, assessor ou advogado um ambiente de trabalho completo dentro do Claude Code.
+O plugin reune **9 skills** que trabalham em conjunto para dar ao magistrado, assessor ou advogado um ambiente de trabalho completo dentro do Claude Code.
 
 ## Arquitetura
 
@@ -449,7 +449,7 @@ Isso baixa e habilita o plugin globalmente. Em um unico comando, voce ganha:
 | O que e instalado | Como e carregado |
 |-------------------|------------------|
 | `.mcp.json` → servidor MCP TecJustica Lite | Claude registra automaticamente, chama `npx mcp-remote` em background, autentica com `TECJUSTICA_API_KEY` |
-| 8 skills (`tecjustica-mcp-lite`, `analise-processo-civil`, `analise-processo-penal`, `tecjustica-parse`, `pje-download`, `baixar-autos-pje`, `cjf-jurisprudencia`, `tecjustica-docx`) | Carregadas como skills **model-invoked** — o Claude ativa a relevante quando o contexto bate |
+| 9 skills (`tecjustica-mcp-lite`, `analise-processo-civil`, `analise-processo-penal`, `tecjustica-parse`, `liteparse-windows`, `pje-download`, `baixar-autos-pje`, `cjf-jurisprudencia`, `tecjustica-docx`) | Carregadas como skills **model-invoked** — o Claude ativa a relevante quando o contexto bate |
 | Script bundled `scripts/parse.sh` (TecJustica Parse) | Referenciado via `${CLAUDE_SKILL_DIR}` (variavel expandida pelo Claude Code) |
 | Script bundled `scripts/baixar_autos_pje.sh` (PJE Download) | Idem |
 
@@ -501,7 +501,7 @@ Se aparecer `failed` ou ficar em `connecting` indefinidamente, consulte [Trouble
 /help
 ```
 
-Voce deve ver as 8 skills listadas sob o namespace do plugin. Elas sao **model-invoked**, ou seja, o Claude ativa automaticamente a skill correta quando voce faz um pedido que bate com a descricao — voce nao precisa digitar `/tecjustica:analise-processo-civil` manualmente.
+Voce deve ver as 9 skills listadas sob o namespace do plugin. Elas sao **model-invoked**, ou seja, o Claude ativa automaticamente a skill correta quando voce faz um pedido que bate com a descricao — voce nao precisa digitar `/tecjustica:analise-processo-civil` manualmente.
 
 ### 5.4 Teste rapido
 
@@ -520,7 +520,7 @@ Se retornar erro 401, a chave `TECJUSTICA_API_KEY` esta invalida ou nao foi lida
 
 ## Skills incluidas
 
-![Mapa das 8 skills](assets/images/skills-map.jpg)
+![Mapa das 9 skills](assets/images/skills-map.jpg)
 
 ### `tecjustica-mcp-lite` — Acesso ao DataLake PDPJ
 
@@ -543,6 +543,10 @@ Assessor especializado em processo penal brasileiro. Identifica rito (ordinario,
 ### `tecjustica-parse` — OCR de PDFs
 
 Extrai texto de PDFs juridicos (escaneados ou digitais) via API TecJustica Parse com PaddleOCR GPU. Suporta `--enhance` com IA Vision para correcao de erros e remocao de ruido (sidebars, rodapes). Processa certidoes, matriculas, peticoes e processos inteiros. Limite: 1GB por upload, 60 req/min. Exige chave `tjp_...`.
+
+### `liteparse-windows` — OCR local de autos do PJe (Windows, offline)
+
+Alternativa **local e offline** a `tecjustica-parse` para quem usa Claude Code no **Windows** (Git Bash ou PowerShell). Usa o CLI `lit` do LiteParse (`@llamaindex/liteparse`) com Tesseract.js embutido para extrair texto + metadados de PDFs de autos do PJe de qualquer tribunal (TJCE, TJSP, TJRS, TJRJ, TJBA, TRFs, TRTs). Identifica automaticamente a capa padronizada do PJe, monta tabela com numero CNJ, classe, orgao, partes, advogados e ultimas movimentacoes, e oferece proximos passos (extracao de pecas, JSON com bounding boxes, screenshots, busca por termos). Pressupoe que o PDF ja esta no disco — se for baixar, use `baixar-autos-pje` ou `pje-download` antes. **Nao depende de API externa nem de chave** — toda IA/OCR roda local. Requer `npm i -g @llamaindex/liteparse` e, opcionalmente, LibreOffice (anexos DOC/XLSX) e ImageMagick (imagens soltas).
 
 ### `pje-download` — Baixar autos do PJE TJCE
 
