@@ -4,13 +4,13 @@
 
 Assessoria judicial inteligente para processos civeis e penais brasileiros. Analise processual, elaboracao de decisoes, pesquisa de jurisprudencia, download de autos do PJE, OCR de PDFs e calculos de prazos — tudo integrado via skills do Claude Code e o MCP Lite TecJustica (DataLake PDPJ/CNJ).
 
-O plugin reune **9 skills** que trabalham em conjunto para dar ao magistrado, assessor ou advogado um ambiente de trabalho completo dentro do Claude Code.
+O plugin reune **10 skills** que trabalham em conjunto para dar ao magistrado, assessor ou advogado um ambiente de trabalho completo dentro do Claude Code.
 
 ## Arquitetura
 
 ![Arquitetura TecJustica](assets/images/architecture.jpg)
 
-O Claude Code carrega o **plugin TecJustica**, que expoe 6 skills e registra o servidor **MCP TecJustica Lite** via `mcp-remote`. O MCP Lite consome o **DataLake PDPJ** do CNJ e devolve processos, documentos, movimentacoes e precedentes em tempo real. Tudo roda sobre JSON-RPC via HTTP, autenticado com sua chave `mcp_...`.
+O Claude Code carrega o **plugin TecJustica**, que expoe 10 skills e registra o servidor **MCP TecJustica Lite** via `mcp-remote`. O MCP Lite consome o **DataLake PDPJ** do CNJ e devolve processos, documentos, movimentacoes e precedentes em tempo real. Tudo roda sobre JSON-RPC via HTTP, autenticado com sua chave `mcp_...`.
 
 ## Sumario
 
@@ -107,6 +107,11 @@ A tabela abaixo resume tudo. Os passos detalhados vem na proxima secao.
 | Chave API MCP (`mcp_...`) | MCP TecJustica | Secao 2.1 |
 | Chave API Parse (`tjp_...`) | `tecjustica-parse` | Secao 2.2 (opcional) |
 | Credenciais PJE TJCE | `pje-download` | Voce ja deve ter como magistrado/servidor/advogado |
+| Credenciais PJE (CPF/CNPJ + senha) | `pje-baixar` | Voce ja deve ter como magistrado/servidor/advogado |
+
+> **`pje-baixar` nao tem dependencia de sistema.** A skill traz binarios Go
+> estaticos embutidos (Linux, macOS e Windows) — nao precisa de Node, Chrome,
+> `browser-use` nem chave de API. So precisa das suas credenciais do PJE.
 
 ---
 
@@ -449,7 +454,7 @@ Isso baixa e habilita o plugin globalmente. Em um unico comando, voce ganha:
 | O que e instalado | Como e carregado |
 |-------------------|------------------|
 | `.mcp.json` → servidor MCP TecJustica Lite | Claude registra automaticamente, chama `npx mcp-remote` em background, autentica com `TECJUSTICA_API_KEY` |
-| 9 skills (`tecjustica-mcp-lite`, `analise-processo-civil`, `analise-processo-penal`, `tecjustica-parse`, `liteparse-windows`, `pje-download`, `baixar-autos-pje`, `cjf-jurisprudencia`, `tecjustica-docx`) | Carregadas como skills **model-invoked** — o Claude ativa a relevante quando o contexto bate |
+| 10 skills (`tecjustica-mcp-lite`, `analise-processo-civil`, `analise-processo-penal`, `tecjustica-parse`, `liteparse-windows`, `pje-download`, `pje-baixar`, `baixar-autos-pje`, `cjf-jurisprudencia`, `tecjustica-docx`) | Carregadas como skills **model-invoked** — o Claude ativa a relevante quando o contexto bate |
 | Script bundled `scripts/parse.sh` (TecJustica Parse) | Referenciado via `${CLAUDE_SKILL_DIR}` (variavel expandida pelo Claude Code) |
 | Script bundled `scripts/baixar_autos_pje.sh` (PJE Download) | Idem |
 
@@ -501,7 +506,7 @@ Se aparecer `failed` ou ficar em `connecting` indefinidamente, consulte [Trouble
 /help
 ```
 
-Voce deve ver as 9 skills listadas sob o namespace do plugin. Elas sao **model-invoked**, ou seja, o Claude ativa automaticamente a skill correta quando voce faz um pedido que bate com a descricao — voce nao precisa digitar `/tecjustica:analise-processo-civil` manualmente.
+Voce deve ver as 10 skills listadas sob o namespace do plugin. Elas sao **model-invoked**, ou seja, o Claude ativa automaticamente a skill correta quando voce faz um pedido que bate com a descricao — voce nao precisa digitar `/tecjustica:analise-processo-civil` manualmente.
 
 ### 5.4 Teste rapido
 
@@ -520,7 +525,7 @@ Se retornar erro 401, a chave `TECJUSTICA_API_KEY` esta invalida ou nao foi lida
 
 ## Skills incluidas
 
-![Mapa das 9 skills](assets/images/skills-map.jpg)
+![Mapa das skills](assets/images/skills-map.jpg)
 
 ### `tecjustica-mcp-lite` — Acesso ao DataLake PDPJ
 
@@ -551,6 +556,24 @@ Alternativa **local e offline** a `tecjustica-parse` para quem usa Claude Code n
 ### `pje-download` — Baixar autos do PJE TJCE
 
 Automatiza o download de autos (PDFs) de processos do PJE TJCE 1o Grau usando `browser-use` CLI. Na primeira execucao abre o Chrome para login manual (CPF/CNPJ + senha ou certificado digital) e salva cookies em `~/.browser-use/pje_cookies.json` para reutilizacao. Traz script `baixar_autos_pje.sh` bundled com fallback manual documentado em `references/pje-navegacao.md`.
+
+### `pje-baixar` — Baixar autos do PJE via MNI (CLI embutida, sem browser)
+
+Baixa **todos os documentos** de um processo do PJe e os grava numa pasta local,
+um arquivo por peca, usando uma **CLI Go embutida na propria skill** (binarios
+estaticos para Linux, macOS e Windows ja inclusos em `bin/` — nao precisa
+instalar nada). Fala SOAP direto com o **MNI** (Modelo Nacional de
+Interoperabilidade), o canal oficial do CNJ, usando apenas as credenciais do PJe
+do usuario (`PJE_CPF`/`PJE_SENHA` ou config local) — **sem conta TecJustica, sem
+API key, sem creditos**.
+
+Diferente das skills de download por navegador (`pje-download`,
+`baixar-autos-pje`): aqui **nao ha browser nem PDF consolidado** — e consulta MNI
+direta ao tribunal, que devolve cada peca como arquivo separado (PDF, HTML, RTF,
+imagens) numerado em ordem (`001_<descricao>_<idDocumento>.<ext>`, a Peticao
+Inicial em `001`). Ideal quando o objetivo e ter os arquivos brutos no disco
+prontos para um pipeline de leitura/extracao. Dispara com numeros CNJ ou pedidos
+como "baixa os autos", "baixa os PDFs do processo", "salva o processo em disco".
 
 ### `baixar-autos-pje` — Baixar autos do PJE (qualquer tribunal) via Claude in Chrome
 
@@ -624,6 +647,8 @@ Apos instalar o plugin, as skills sao ativadas automaticamente. Basta conversar 
 
 ```
 "Baixe os autos do processo NNNNNNN-DD.AAAA.J.TT.OOOO do PJE"
+
+"Baixa os documentos do processo NNNNNNN-DD.AAAA.J.TT.OOOO em disco para eu analisar"
 
 "Extraia o texto do PDF ./autos_3000066.pdf e salve em processo.md"
 
