@@ -25,8 +25,13 @@ Esta skill traz o binário pronto (não precisa de Go, Python nem compilar) e fu
 
 ## Passo a passo
 
-Trate `SKILL_DIR` como o diretório desta skill (onde está este `SKILL.md`). O wrapper
-`scripts/tjocr.sh` detecta o sistema e escolhe o binário certo em `bin/` automaticamente.
+Nos comandos abaixo, **`SKILL_DIR` é um marcador: substitua-o pelo caminho real desta skill**
+— o diretório onde está este `SKILL.md`, informado no cabeçalho "Base directory" quando a skill
+abre (por exemplo `~/.claude/skills/tjocr`). Use o caminho real **em cada comando**; não dependa
+de uma variável de shell, pois ela não persiste entre comandos executados separadamente.
+
+O wrapper `scripts/tjocr.sh` detecta o sistema operacional e escolhe o binário certo em `bin/`
+automaticamente.
 
 ### Opcional: deixar `tjocr` no PATH (uma vez por máquina)
 
@@ -71,13 +76,17 @@ usuário não tiver uma, oriente-o a obtê-la no dashboard da TecJustiça.
 ### 2. Rodar o OCR
 
 ```bash
-bash "SKILL_DIR/scripts/tjocr.sh" "CAMINHO/documento.pdf" -o documento.md
+bash "SKILL_DIR/scripts/tjocr.sh" "/caminho/documento.pdf" -o /caminho/documento.md
 ```
 
+- **Prefira caminhos absolutos** no PDF e no `-o` — é o mais seguro, sobretudo em automação:
+  um `-o` relativo é resolvido a partir do diretório de trabalho atual, que pode variar entre
+  comandos. (Se usar `-o` relativo, rode o comando já na pasta onde quer o `.md`.)
 - O markdown vai para o arquivo de `-o` (ou para o **stdout** se você omitir `-o`). O
   progresso e o resumo vão para o **stderr** — então dá para usar em pipe sem sujar a saída.
-- Caminhos de `-o` relativos são resolvidos a partir do **diretório de trabalho atual** —
-  rode o comando já onde você quer o `.md` (ou passe um `-o` absoluto).
+- O resumo (stderr) traz `N texto + N OCR`: **texto** = páginas digitais lidas direto (sem OCR);
+  **OCR** = páginas escaneadas processadas pelo OCR. Vem também a `qualidade média` (0–100) e um
+  aviso quando há páginas de baixa qualidade.
 - O primeiro PDF pode demorar alguns segundos (a GPU "esquenta"); PDFs já processados antes
   voltam instantâneos (cache). A skill cuida disso sozinha (cache hit vs processamento
   assíncrono).
