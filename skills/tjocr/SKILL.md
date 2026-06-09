@@ -90,10 +90,14 @@ bash "SKILL_DIR/scripts/tjocr.sh" "/caminho/documento.pdf" -o /caminho/documento
 - O primeiro PDF pode demorar alguns segundos (a GPU "esquenta"); PDFs já processados antes
   voltam instantâneos (cache). A skill cuida disso sozinha (cache hit vs processamento
   assíncrono).
-- Opções úteis: `--pages 1-5,10` (só algumas páginas), `--dpi 72` (mais rápido/barato),
-  `--enhance` (corrige o OCR com IA — mais lento e pode reescrever; use quando a fidelidade
-  de números/nomes importa e o documento está degradado). Lista completa em
-  `references/opcoes.md`.
+- **O motor de OCR é fixo** (PaddleOCR em GPU no servidor, o melhor para PT-BR) — não há
+  o que configurar. **A única opção de qualidade é `--enhance`** (correção por IA,
+  desligada por padrão — mais lenta e pode reescrever; use quando a fidelidade de
+  números/nomes importa e o documento está degradado).
+- Opções úteis: `--pages 1-5,10` (só algumas páginas), `--dpi 72` (mais rápido/barato).
+- **Lote**: passe vários PDFs de uma vez (`tjocr a.pdf b.pdf c.pdf -d ./md/`) — processa
+  3 em paralelo (`--parallel 1-8`) e salva um `.md` por PDF. Ctrl+C cancela todos os jobs
+  no servidor. Lista completa de opções em `references/opcoes.md`.
 
 ### 3. Usar o resultado
 
