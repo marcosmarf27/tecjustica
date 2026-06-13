@@ -15,7 +15,7 @@ A pasta `bin/` desta skill traz um binário por plataforma:
 | `pje-baixar-darwin-arm64` | macOS Apple Silicon |
 | `pje-baixar-windows-amd64.exe` | Windows x86-64 |
 
-Todos são da versão 1.0.0. Em Linux/macOS, dê `chmod +x` no binário antes de
+Todos são da versão 1.1.0. Em Linux/macOS, dê `chmod +x` no binário antes de
 executá-lo (o bit de execução pode se perder ao clonar o repositório).
 
 ## Subcomandos
@@ -34,8 +34,9 @@ executá-lo (o bit de execução pode se perder ao clonar o repositório).
 |---|---|---|
 | `-out DIR` | `.` | Diretório base; a pasta `<numero>/` é criada dentro dele |
 | `-ordem MODO` | `id` | Ordem dos arquivos no nome (`NNN_...`) |
+| `-grau N` | `1` | Instância: `1` (primeiro grau) ou `2` (segundo grau) |
 
-A flag e o número do processo podem vir em qualquer ordem — tanto
+As flags e o número do processo podem vir em qualquer ordem — tanto
 `pje-baixar -ordem data <num>` quanto `pje-baixar <num> -ordem data` funcionam.
 
 ### Modos de `-ordem`
@@ -54,7 +55,9 @@ documentos são baixados em qualquer modo.
 |---|---|---|
 | `PJE_CPF` | — | CPF/CNPJ do consultante no PJe |
 | `PJE_SENHA` | — | Senha do PJe |
-| `PJE_MNI_URL` | TJCE 1º grau | Endpoint MNI do tribunal |
+| `PJE_MNI_URL` | TJCE 1º grau | Endpoint MNI de 1º grau do tribunal |
+| `PJE_MNI_URL_2GRAU` | troca `pje1grau`→`pje2grau` | Endpoint MNI de 2º grau (usado com `-grau 2`) |
+| `PJE_GRAU` | `1` | Grau padrão quando `-grau` não é informado (`1` ou `2`) |
 | `PJE_CONCURRENCY` | `4` | Downloads em paralelo |
 | `PJE_TIMEOUT` | `120` | Timeout por requisição, em segundos |
 | `PJE_INSECURE` | — | `1` para não verificar o certificado TLS do servidor |
@@ -63,14 +66,31 @@ As variáveis de ambiente têm **prioridade** sobre o arquivo de configuração.
 `PJE_CPF`/`PJE_SENHA` quando precisar rodar a CLI em um contexto não-interativo (como
 o Claude executando via shell), já que `pje-baixar config` exige um terminal.
 
+## Primeiro e segundo grau
+
+O número CNJ **não** indica a instância — o grau é definido só pelo endpoint MNI.
+Por padrão a CLI consulta o **1º grau**; use `-grau 2` para o **2º grau**:
+
+```bash
+"$PJE_BAIXAR" -grau 2 0000000-00.0000.0.00.0000
+```
+
+No TJCE, `-grau 2` troca automaticamente `pje1grau` por `pje2grau` na URL
+(`https://pjews.tjce.jus.br/pje2grau/intercomunicacao`). Para outros tribunais cujo
+padrão de URL difira, aponte `PJE_MNI_URL_2GRAU` para o endpoint de 2º grau. As mesmas
+credenciais valem para os dois graus, desde que o cadastro PJe esteja habilitado na
+instância consultada.
+
 ## Usar com outros tribunais
 
 Por padrão a CLI consulta o TJCE 1º grau
 (`https://pjews.tjce.jus.br/pje1grau/intercomunicacao`). Para outro tribunal, aponte
-`PJE_MNI_URL` para o endpoint MNI correspondente:
+`PJE_MNI_URL` para o endpoint MNI de 1º grau correspondente (e, se for usar `-grau 2`,
+`PJE_MNI_URL_2GRAU` para o de 2º grau):
 
 ```bash
 export PJE_MNI_URL=https://pje.tjxx.jus.br/pje1grau/intercomunicacao
+export PJE_MNI_URL_2GRAU=https://pje.tjxx.jus.br/pje2grau/intercomunicacao
 "$PJE_BAIXAR" 0000000-00.0000.0.00.0000
 ```
 
@@ -123,5 +143,5 @@ lá.
 ## Origem do binário
 
 A CLI `pje-baixar` é um projeto Go mantido no laboratório TecJustica PJe MNI Lab.
-Os binários desta skill foram compilados da versão 1.0.0. Para atualizar, recompile
+Os binários desta skill foram compilados da versão 1.1.0. Para atualizar, recompile
 a CLI no projeto de origem e substitua os arquivos em `bin/`.

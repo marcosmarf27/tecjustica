@@ -136,6 +136,13 @@ criada dentro dele):
 `xml`. Mantenha o padrão `id` na maioria dos casos. A flag e o número podem vir em
 qualquer ordem.
 
+**Segundo grau** — o número CNJ não indica a instância. Por padrão a CLI baixa do
+1º grau; para o 2º grau (Tribunal/câmaras), use `-grau 2`:
+
+```bash
+"$PJE_BAIXAR" -grau 2 3000066-83.2025.8.06.0203
+```
+
 ## Depois do download
 
 A pasta resultante contém os arquivos brutos numerados — já é a entrada pronta para
@@ -151,6 +158,7 @@ peças específicas (petição inicial, sentença, despacho).
 
 ## Erros comuns e uso avançado
 
-Para uso com **outros tribunais** (`PJE_MNI_URL`), a tabela completa de variáveis de
-ambiente, os modos de `-ordem`, os códigos de saída e o tratamento de falhas
-parciais de documentos, consulte `references/referencia.md`.
+Para uso com **outros tribunais** (`PJE_MNI_URL`), **2º grau** (`-grau 2` /
+`PJE_MNI_URL_2GRAU`), a tabela completa de variáveis de ambiente, os modos de
+`-ordem`, os códigos de saída e o tratamento de falhas parciais de documentos,
+consulte `references/referencia.md`.
